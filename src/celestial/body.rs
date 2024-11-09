@@ -44,7 +44,7 @@ impl Body {
         self.progress = 0.0;
     }
     pub fn get_orbital_period(&self, g: f64) -> Result<f64, String> {
-        let orbit = (self.orbit.as_ref()).expect("Body is not in orbit");
+        let orbit = self.orbit.as_ref().ok_or("Body is not in orbit")?;
         let mu = g * self.mass;
 
         let semi_major_axis = orbit.get_semi_major_axis();
@@ -58,5 +58,14 @@ impl Body {
         self.progress = self.progress.rem_euclid(1.0);
 
         return Ok(());
+    }
+    pub fn get_relative_position(&self) -> (f64, f64, f64) {
+        let orbit = self.orbit.as_ref();
+
+        if orbit.is_none() {
+            return (0.0, 0.0, 0.0);
+        }
+
+        return orbit.unwrap().get_position_at_time(self.progress);
     }
 }

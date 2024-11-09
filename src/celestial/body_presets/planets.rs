@@ -68,3 +68,26 @@ pub fn earth(include_orbit: bool) -> Body {
         orbit
     );
 }
+
+/// Returns Mars, the fourth planet from the Sun.
+/// `include_orbit`: Whether to include the orbit of Mars around the Sun.
+pub fn mars(include_orbit: bool) -> Body {
+    let orbit = if include_orbit {
+        // Source: Wikipedia
+        Some(Orbit::new(
+            2.49261e8,
+            2.0665e8,
+            1.850_f64.to_radians(),
+            286.5_f64.to_radians(),
+            49.57854_f64.to_radians(),
+            19.412_f64.to_radians()
+        ))
+    } else { None };
+
+    return Body::new(
+        "Mars".to_string(),
+        6.4171e23,
+        3.3895e6,
+        orbit
+    );
+}

@@ -73,8 +73,8 @@ impl Universe {
 
     /// Removes a body from the universe.
     /// `body_index`: The index of the body to remove.
-    pub fn remove_body(&mut self, body_index: usize) {
-        self.bodies.remove(body_index);
+    pub fn remove_body(&mut self, body_index: usize) -> Body {
+        let body = self.bodies.remove(body_index);
         let relations = &mut self.body_relations[body_index];
         
         if let Some(_) = relations.parent {
@@ -88,6 +88,8 @@ impl Universe {
         for satellite in satellites_to_remove {
             self.remove_body(satellite);
         }
+
+        return body;
     }
 
     /// Gets a Vec of all bodies in the universe.
@@ -168,5 +170,20 @@ impl Universe {
             self.tick()?;
         }
         return Ok(());
+    }
+
+    pub fn get_body_position(&self, index: usize) -> (f64, f64, f64) {
+        let body = &self.bodies[index];
+
+        let mut position = body.get_relative_position();
+
+        if let Some(parent) = self.body_relations[index].parent {
+            let parent_position = self.get_body_position(parent);
+            position.0 += parent_position.0;
+            position.1 += parent_position.1;
+            position.2 += parent_position.2;
+        }
+
+        return position;
     }
 }
