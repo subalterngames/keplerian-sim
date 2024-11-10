@@ -1,6 +1,5 @@
-mod celestial;
-use celestial::{
-    Body, Orbit, Universe, body_presets
+use keplerian_rust::{
+    Universe, body_presets
 };
 
 const SIMULATION_TICKS: u128 = 1_000_000;

@@ -2,11 +2,11 @@
 A Rust program I ported from C# to simulate Keplerian orbits.
 
 ## Dependencies
-You'll need Cargo and Rust to run this program. You can get it [at rustup.rs](https://rustup.rs/).
+You'll need Cargo and Rust to run the example binary. You can get it [at rustup.rs](https://rustup.rs/).
 
 ## Running
-To run this project, simply clone the repository and run `cargo run` in the project directory.  
-If you want to run it with more compiler optimizations, run `cargo run -r` instead to run it in release mode.
+This project is a library crate, so you can't really 'run' that, but you can run the example binary.  
+Simply clone the repo using `git clone` and run `cargo run --example simulate` in the project's root directory.
 
 ## Resources
 I did not come up with the algorithms myself. Here are useful resources for converting Keplerian orbital parameters into Cartesian coordinates:  
