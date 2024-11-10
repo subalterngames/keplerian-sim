@@ -6,7 +6,10 @@ You'll need Cargo and Rust to run the example binary. You can get it [at rustup.
 
 ## Running
 This project is a library crate, so you can't really 'run' that, but you can run the example binary.  
-Simply clone the repo using `git clone` and run `cargo run --example simulate` in the project's root directory.
+1. Clone the repo: `git clone https://github.com/Not-A-Normal-Robot/keplerian-rust`
+2. Install the dependencies for [`plotters`](https://crates.io/crates/plotters#dependencies), if any
+3. Check out the available example binaries: `cargo run --example`
+4. Run the example binary: `cargo run --example <binary_name>`
 
 ## Resources
 I did not come up with the algorithms myself. Here are useful resources for converting Keplerian orbital parameters into Cartesian coordinates:  

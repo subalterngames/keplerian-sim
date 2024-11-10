@@ -2,3 +2,7 @@
 name = "keplerian_rust"
 version = "0.1.0"
 edition = "2021"
+
+[dev-dependencies]
+plotters = "0.3.7"
+plotters-backend = "0.3.7"

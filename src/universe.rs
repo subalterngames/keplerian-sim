@@ -1,7 +1,9 @@
+use std::fmt;
+
 use super::Body;
 
 /// Struct that represents the simulation of the universe.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Universe {
     /// The celestial bodies in the universe.
     bodies: Vec<Body>,
@@ -18,7 +20,7 @@ pub struct Universe {
     /// The gravitational constant, in m^3 kg^-1 s^-2.
     pub g: f64
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BodyRelation {
     pub parent: Option<usize>,
     pub satellites: Vec<usize>
@@ -133,43 +135,19 @@ impl Universe {
     }
 
     /// Advances the simulation by a tick.
-    pub fn tick(&mut self) -> Result<(), String> {
-        let bodies_backup = self.bodies.clone();
-        let mut error: Option<String> = None;
-
+    pub fn tick(&mut self) {
         for body in &mut self.bodies {
             if body.orbit.is_none() { continue; }
-            let result = body.progress_orbit(self.time_step, self.g);
-            if let Err(e) = result {
-                error = Some(e);
-                break;
-            }
+            body.progress_orbit(self.time_step, self.g)
+                .unwrap();
         }
-
-        if let Some(e) = error {
-            self.bodies = bodies_backup;
-            return Err(e);
-        } else {
-            self.time += self.time_step;
-        }
-
-        return Ok(());
     }
 
     /// Advances the universe by multiple ticks.
-    pub fn warp(&mut self, ticks: u128) -> Result<(), String> {
+    pub fn warp(&mut self, ticks: u128) {
         for _ in 0..ticks {
-            self.tick()?;
+            self.tick();
         }
-        return Ok(());
-    }
-
-    /// Advances the universe by multiple ticks, asynchronously.
-    pub async fn warp_async(&mut self, ticks: u128) -> Result<(), String> {
-        for _ in 0..ticks {
-            self.tick()?;
-        }
-        return Ok(());
     }
 
     pub fn get_body_position(&self, index: usize) -> (f64, f64, f64) {
@@ -185,5 +163,17 @@ impl Universe {
         }
 
         return position;
+    }
+}
+
+impl Default for Universe {
+    fn default() -> Self {
+        return Universe::new_default();
+    }
+}
+
+impl fmt::Display for Universe {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Universe with {} bodies, t={}", self.bodies.len(), self.time)
     }
 }

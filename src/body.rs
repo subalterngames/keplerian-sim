@@ -2,7 +2,7 @@ use crate::Orbit;
 use std::f64::consts::TAU as TAU;
 
 /// A struct representing a celestial body.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Body {
     /// The name of the celestial body.
     pub name: String,

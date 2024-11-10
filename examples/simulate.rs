@@ -3,14 +3,13 @@ use keplerian_rust::{
 };
 
 const SIMULATION_TICKS: u128 = 1_000_000;
-fn main() -> Result<(), String> {
+fn main() {
     let mut universe = generate_solar_system();
     describe_universe(&universe);
     print!("Simulating {SIMULATION_TICKS} ticks...");
-    universe.warp(SIMULATION_TICKS)?;
+    universe.warp(SIMULATION_TICKS);
     println!(" done");
     print_all_body_positions(&universe);
-    return Ok(());
 }
 
 fn generate_solar_system<'a>() -> Universe {

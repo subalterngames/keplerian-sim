@@ -5,6 +5,8 @@
 // However his code is kinda incomplete and doesn't account for longitude of ascending node.
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
+use crate::Matrix3x2;
+
 /// A struct representing a Keplerian orbit with some cached values.
 #[derive(Clone, Debug)]
 pub struct CompactOrbit {
@@ -25,31 +27,6 @@ pub struct CompactOrbit {
 
     /// The mean anomaly at orbit epoch, in radians.
     pub mean_anomaly: f64,
-    // cache: OrbitCachedCalculations,
-}
-// #[derive(Clone, Debug)]
-// struct OrbitCachedCalculations {
-//     /// The semi-major axis of the orbit, in meters.
-//     semi_major_axis: f64,
-
-//     /// The semi-minor axis of the orbit, in meters.
-//     semi_minor_axis: f64,
-
-//     /// The linear eccentricity of the orbit, in meters.
-//     linear_eccentricity: f64,
-
-//     /// The eccentricity of the orbit, unitless.
-//     eccentricity: f64,
-
-//     /// The transformation matrix to tilt the 2D planar orbit into 3D space.
-//     transformation_matrix: Matrix3x2<f64>
-// }
-#[derive(Clone, Debug)]
-struct Matrix3x2<T> {
-    // Element XY
-    e11: T, e12: T,
-    e21: T, e22: T,
-    e31: T, e32: T
 }
 
 // Initialization and cache management
@@ -70,35 +47,6 @@ impl CompactOrbit {
     pub fn new_default() -> CompactOrbit {
         return Self::new(1.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     }
-
-    // fn update_cache(&mut self) {
-    //     self.cache = Self::get_cached_calculations(
-    //         self.apoapsis,
-    //         self.periapsis,
-    //         self.inclination,
-    //         self.arg_pe,
-    //         self.long_asc_node
-    //     );
-    // }
-
-    // fn get_cached_calculations(
-    //     apoapsis: f64, periapsis: f64,
-    //     inclination: f64, arg_pe: f64, long_asc_node: f64
-    // ) -> OrbitCachedCalculations {
-    //     let semi_major_axis = (apoapsis + periapsis) / 2.0;
-    //     let semi_minor_axis = (apoapsis * periapsis).sqrt();
-    //     let linear_eccentricity = semi_major_axis - periapsis;
-    //     let eccentricity = linear_eccentricity / semi_major_axis;
-    //     let transformation_matrix = Self::get_transformation_matrix(inclination, arg_pe, long_asc_node);        
-
-    //     return OrbitCachedCalculations {
-    //         semi_major_axis,
-    //         semi_minor_axis,
-    //         linear_eccentricity,
-    //         eccentricity,
-    //         transformation_matrix
-    //     }
-    // }
 }
 
 // The actual orbit position calculations
@@ -237,15 +185,6 @@ impl CompactOrbit {
     }
 }
 
-impl Matrix3x2<f64> {
-    fn filled_with<T: Copy>(element: T) -> Matrix3x2<T> {
-        return Matrix3x2 {
-            e11: element, e12: element,
-            e21: element, e22: element,
-            e31: element, e32: element,
-        };
-    }
-}
 
 fn keplers_equation(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
     return eccentric_anomaly - (eccentricity * eccentric_anomaly.sin()) - mean_anomaly;

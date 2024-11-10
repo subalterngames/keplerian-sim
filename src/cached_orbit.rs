@@ -5,11 +5,12 @@
 // However his code is kinda incomplete and doesn't account for longitude of ascending node.
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
+use crate::Matrix3x2;
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
 
 /// A struct representing a Keplerian orbit with some cached values.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Orbit {
     /// The apoapsis of the orbit, in meters.
     apoapsis: f64,
@@ -30,7 +31,7 @@ pub struct Orbit {
     mean_anomaly: f64,
     cache: OrbitCachedCalculations,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct OrbitCachedCalculations {
     /// The semi-major axis of the orbit, in meters.
     semi_major_axis: f64,
@@ -47,14 +48,6 @@ struct OrbitCachedCalculations {
     /// The transformation matrix to tilt the 2D planar orbit into 3D space.
     transformation_matrix: Matrix3x2<f64>
 }
-#[derive(Clone, Debug)]
-struct Matrix3x2<T> {
-    // Element XY
-    e11: T, e12: T,
-    e21: T, e22: T,
-    e31: T, e32: T
-}
-
 // Initialization and cache management
 impl Orbit {
     pub fn new(
@@ -242,16 +235,6 @@ impl Orbit {
     pub fn set_arg_pe       (&mut self, value: f64) { self.arg_pe        = value; self.update_cache(); }
     pub fn set_long_asc_node(&mut self, value: f64) { self.long_asc_node = value; self.update_cache(); }
     pub fn set_mean_anomaly (&mut self, value: f64) { self.mean_anomaly  = value; self.update_cache(); }
-}
-
-impl Matrix3x2<f64> {
-    fn filled_with<T: Copy>(element: T) -> Matrix3x2<T> {
-        return Matrix3x2 {
-            e11: element, e12: element,
-            e21: element, e22: element,
-            e31: element, e32: element,
-        };
-    }
 }
 
 fn keplers_equation(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
