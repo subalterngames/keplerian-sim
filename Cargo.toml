@@ -2,6 +2,3 @@
 name = "KeplerianRust"
 version = "0.1.0"
 edition = "2021"
-
-[dependencies]
-array2d = "0.3.2"
