@@ -2,9 +2,3 @@
 name = "keplerian_rust"
 version = "0.1.0"
 edition = "2021"
-
-[dev-dependencies]
-eframe = "0.22.0"
-egui = "0.22.0"
-egui-plotter = "0.3.0"
-plotters = { git = "https://github.com/plotters-rs/plotters" }
