@@ -43,16 +43,17 @@ impl Body {
         self.orbit = None;
         self.progress = 0.0;
     }
-    pub fn get_orbital_period(&self, g: f64) -> Result<f64, String> {
-        let orbit = self.orbit.as_ref().ok_or("Body is not in orbit")?;
+    pub fn get_orbital_period(&self, g: f64) -> Option<f64> {
+        let orbit = self.orbit.as_ref()?;
         let mu = g * self.mass;
 
         let semi_major_axis = orbit.get_semi_major_axis();
 
-        return Ok(TAU * (semi_major_axis / mu).sqrt());
+        return Some(TAU * (semi_major_axis / mu).sqrt());
     }
     pub fn progress_orbit(&mut self, dt: f64, g: f64) -> Result<(), String> {
-        let period = self.get_orbital_period(g)?;
+        let period = self.get_orbital_period(g)
+            .ok_or("Body is not in orbit")?;
         let delta_progress = dt / period;
         self.progress += delta_progress;
         self.progress = self.progress.rem_euclid(1.0);
