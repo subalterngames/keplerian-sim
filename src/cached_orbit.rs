@@ -108,7 +108,7 @@ impl Orbit {
             let (sin_lan, cos_lan) = long_asc_node.sin_cos();
 
             // https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
-            matrix.e11 = sin_arg_pe * cos_lan - sin_arg_pe * cos_inc * sin_lan;
+            matrix.e11 = cos_arg_pe * cos_lan - sin_arg_pe * cos_inc * sin_lan;
             matrix.e12 = -(sin_arg_pe * cos_lan + cos_arg_pe * cos_inc * sin_lan);
             
             matrix.e21 = cos_arg_pe * sin_lan + sin_arg_pe * cos_inc * cos_lan;

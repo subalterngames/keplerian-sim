@@ -17,6 +17,21 @@ fn assert_almost_eq(a: f64, b: f64, what: &str) {
     assert!(dist < ALMOST_EQ_TOLERANCE, "{msg}");
 }
 
+fn vec3_len(v: Vec3) -> f64 {
+    return (
+        v.0 * v.0 +
+        v.1 * v.1 +
+        v.2 * v.2
+    ).sqrt();
+}
+
+fn vec2_len(v: Vec2) -> f64 {
+    return (
+        v.0 * v.0 +
+        v.1 * v.1
+    ).sqrt();
+}
+
 fn assert_almost_eq_vec3(a: Vec3, b: Vec3) {
     assert_almost_eq(a.0, b.0, "X coord");
     assert_almost_eq(a.1, b.1, "Y coord");
@@ -60,7 +75,7 @@ fn poll_orbit(orbit: &impl OrbitTrait) -> Vec<Vec3> {
 }
 
 #[test]
-fn unit_orbit_3d() {
+fn unit_orbit_angle_3d() {
     let orbit = Orbit::new(
         1.0,
         1.0,
@@ -80,7 +95,7 @@ fn unit_orbit_3d() {
 }
 
 #[test]
-fn unit_orbit_2d() {
+fn unit_orbit_angle_2d() {
     let orbit = Orbit::new(
         1.0,
         1.0,
@@ -97,6 +112,56 @@ fn unit_orbit_2d() {
         (1.5 * PI, (0.0, -1.0)),
         (2.0 * PI, (1.0, 0.0)),
     ]);
+}
+
+#[test]
+fn unit_orbit_transformation() {
+    // Test how the inclination and LAN tilts points in the orbit.
+    // Since inclination is zero, it should not do anything.
+    let orbit = Orbit::new(
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    );
+
+    let tests = [
+        (1.0, 1.0),
+        (1.0, 0.0),
+        (0.0, 1.0),
+        (0.0, 0.0),
+    ];
+
+    for point in tests {
+        let transformed = orbit.tilt_flat_position(point.0, point.1);
+
+        assert_eq!(transformed.0, point.0);
+        assert_eq!(transformed.1, point.1);
+        assert_eq!(transformed.2, 0.0);
+    }
+}
+
+#[test]
+fn tilted_equidistant() {
+    let orbit = Orbit::new(
+        1.0,
+        1.0,
+        2.848915582093,
+        1.9520945821,
+        2.1834987325,
+        0.69482153021
+    );
+
+    // Test for equidistance
+    let points = poll_orbit(&orbit);
+
+    for point in points {
+        let distance = vec3_len(point);
+
+        assert_almost_eq(distance, 1.0, "Distance");
+    }
 }
 
 #[test]
