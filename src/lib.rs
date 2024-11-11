@@ -43,5 +43,17 @@ pub trait OrbitTrait {
     fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3;
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum OrbitType {
+    /// Eccentricity is less than 1.  
+    /// Orbit is shaped mostly like an ellipse or circle.
+    Elliptic,
+
+    /// Eccentricity is more than or equal to 1.  
+    /// Orbit is shaped mostly like a parabola or hyperbola.  
+    /// The apoapsis does not exist.
+    Hyperbolic
+}
+
 #[cfg(test)]
 mod tests;
