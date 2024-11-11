@@ -5,7 +5,7 @@
 // However his code is kinda incomplete and doesn't account for longitude of ascending node.
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
-use crate::Matrix3x2;
+use crate::{CompactOrbit, Matrix3x2};
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
 
@@ -235,6 +235,19 @@ impl Orbit {
     pub fn set_arg_pe       (&mut self, value: f64) { self.arg_pe        = value; self.update_cache(); }
     pub fn set_long_asc_node(&mut self, value: f64) { self.long_asc_node = value; self.update_cache(); }
     pub fn set_mean_anomaly (&mut self, value: f64) { self.mean_anomaly  = value; self.update_cache(); }
+}
+
+impl From<CompactOrbit> for Orbit {
+    fn from(compact: CompactOrbit) -> Self {
+        return Self::new(
+            compact.apoapsis,
+            compact.periapsis,
+            compact.inclination,
+            compact.arg_pe,
+            compact.long_asc_node,
+            compact.mean_anomaly
+        );
+    }
 }
 
 fn keplers_equation(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
