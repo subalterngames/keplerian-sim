@@ -26,3 +26,22 @@ impl Matrix3x2<f64> {
         };
     }
 }
+
+type Vec3 = (f64, f64, f64);
+type Vec2 = (f64, f64);
+
+pub trait OrbitTrait {
+    fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64;
+    fn get_true_anomaly(&self, mean_anomaly: f64) -> f64;
+    fn get_mean_anomaly_at_time(&self, t: f64) -> f64;
+    fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64;
+    fn get_true_anomaly_at_time(&self, t: f64) -> f64;
+    fn get_position_at_angle(&self, angle: f64) -> Vec3;
+    fn get_flat_position_at_angle(&self, angle: f64) -> Vec2;
+    fn get_position_at_time(&self, t: f64) -> Vec3;
+    fn get_flat_position_at_time(&self, t: f64) -> Vec2;
+    fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3;
+}
+
+#[cfg(test)]
+mod tests;

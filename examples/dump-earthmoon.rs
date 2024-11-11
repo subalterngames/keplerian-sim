@@ -1,4 +1,4 @@
-use keplerian_rust::body_presets;
+use keplerian_rust::{OrbitTrait, body_presets};
 use std::{fs, path::PathBuf};
 
 const SIMULATION_TICKS: u128 = 10_000;

@@ -5,11 +5,14 @@
 // However his code is kinda incomplete and doesn't account for longitude of ascending node.
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
-use crate::{CompactOrbit, Matrix3x2};
+use crate::{CompactOrbit, Matrix3x2, OrbitTrait};
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
 
-/// A struct representing a Keplerian orbit with some cached values.
+/// A struct representing a Keplerian orbit with some cached values.  
+/// This struct consumes significantly more memory because of the cache.  
+/// However, this will speed up orbital calculations.  
+/// If memory efficiency is your goal, you may consider using the `CompactOrbit` struct instead.  
 #[derive(Clone, Debug, PartialEq)]
 pub struct Orbit {
     /// The apoapsis of the orbit, in meters.
@@ -119,9 +122,9 @@ impl Orbit {
 }
 
 // The actual orbit position calculations
-impl Orbit {
+impl OrbitTrait for Orbit {
     /// Numerically approaches the eccentric anomaly using Newton's method. Not performant; cache the result if you can!
-    pub fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
+    fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
         let max_iterations = 1000;
 
@@ -153,7 +156,7 @@ impl Orbit {
     }
 
     /// Gets the true anomaly from the mean anomaly. Not performant; cache the result if you can!
-    pub fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
+    fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
         let eccentric_anomaly = self.get_eccentric_anomaly(mean_anomaly);
 
         // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
@@ -164,7 +167,7 @@ impl Orbit {
     }
 
     /// Multiplies the input 2D vector with the 2x3 transformation matrix used to tilt the flat orbit into 3D space.
-    pub fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3 {
+    fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3 {
         let matrix = &self.cache.transformation_matrix;
         return (
             x * matrix.e11 + y * matrix.e12,
@@ -174,7 +177,7 @@ impl Orbit {
     }
 
     /// Gets the 2D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
-    pub fn get_flat_position_at_angle(&self, true_anomaly: f64) -> Vec2 {
+    fn get_flat_position_at_angle(&self, true_anomaly: f64) -> Vec2 {
         return (
             self.cache.semi_major_axis * (true_anomaly.cos() - self.cache.eccentricity),
             self.cache.semi_minor_axis * true_anomaly.sin()
@@ -182,35 +185,35 @@ impl Orbit {
     }
 
     /// Gets the 3D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
-    pub fn get_position_at_angle(&self, true_anomaly: f64) -> Vec3 {
+    fn get_position_at_angle(&self, true_anomaly: f64) -> Vec3 {
         let (x, y) = self.get_flat_position_at_angle(true_anomaly);
         return self.tilt_flat_position(x, y);
     }
 
     /// Gets the mean anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    pub fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
+    fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
         let time = t.rem_euclid(1.0);
         return time * std::f64::consts::TAU + self.mean_anomaly;
     }
 
     /// Gets the eccentric anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    pub fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
+    fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
         return self.get_eccentric_anomaly(self.get_mean_anomaly_at_time(t));
     }
 
     /// Gets the true anomaly at a certain time. t ranges form 0 to 1; anything out of range will wrap around.
-    pub fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
+    fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
         return self.get_true_anomaly(self.get_mean_anomaly_at_time(t));
     }
 
     /// Gets the 2D position at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    pub fn get_flat_position_at_time(&self, t: f64) -> Vec2 {
+    fn get_flat_position_at_time(&self, t: f64) -> Vec2 {
         let true_anomaly = self.get_true_anomaly_at_time(t);
         return self.get_flat_position_at_angle(true_anomaly);
     }
 
     /// Gets the 3D position at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    pub fn get_position_at_time(&self, t: f64) -> Vec3 {
+    fn get_position_at_time(&self, t: f64) -> Vec3 {
         let true_anomaly = self.get_true_anomaly_at_time(t);
         return self.get_position_at_angle(true_anomaly);
     }
@@ -247,6 +250,14 @@ impl From<CompactOrbit> for Orbit {
             compact.long_asc_node,
             compact.mean_anomaly
         );
+    }
+}
+
+impl CompactOrbit {
+    /// Expand the compact orbit into a cached orbit to increase calculation speed
+    /// while sacrificing memory efficiency.
+    pub fn expand(self) -> Orbit {
+        Orbit::from(self)
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::Orbit;
+use crate::{Orbit, OrbitTrait};
 use std::f64::consts::TAU as TAU;
 
 /// A struct representing a celestial body.

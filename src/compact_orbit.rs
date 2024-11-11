@@ -5,9 +5,12 @@
 // However his code is kinda incomplete and doesn't account for longitude of ascending node.
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
-use crate::{Matrix3x2, Orbit};
+use crate::{Matrix3x2, Orbit, OrbitTrait};
 
-/// A struct representing a Keplerian orbit with some cached values.
+/// A struct representing a Keplerian orbit.  
+/// This struct minimizes memory footprint by not caching variables.  
+/// Because of this, calculations can be slower than caching those variables.  
+/// For this reason, you might consider using the `Orbit` struct instead.
 #[derive(Clone, Debug)]
 pub struct CompactOrbit {
     /// The apoapsis of the orbit, in meters.
@@ -54,41 +57,46 @@ impl CompactOrbit {
     pub fn get_semi_major_axis(&self) -> f64 {
         return (self.apoapsis + self.periapsis) / 2.0;
     }
-
+    
     pub fn get_semi_minor_axis(&self) -> f64 {
         return (self.apoapsis * self.periapsis).sqrt();
     }
-
+    
     pub fn get_linear_eccentricity(&self) -> f64 {
         return self.get_semi_major_axis() - self.periapsis;
     }
-
+    
     pub fn get_eccentricity(&self) -> f64 {
         return self.get_linear_eccentricity() / self.get_semi_major_axis();
     }
+}
 
-    pub fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
+impl CompactOrbit {
+    fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
         let mut matrix = Matrix3x2::<f64>::filled_with(0.0);
         {
             let (sin_inc, cos_inc) = self.inclination.sin_cos();
             let (sin_arg_pe, cos_arg_pe) = self.arg_pe.sin_cos();
             let (sin_lan, cos_lan) = self.long_asc_node.sin_cos();
-
+    
             // https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
             matrix.e11 = sin_arg_pe * cos_lan - sin_arg_pe * cos_inc * sin_lan;
             matrix.e12 = -(sin_arg_pe * cos_lan + cos_arg_pe * cos_inc * sin_lan);
             
             matrix.e21 = cos_arg_pe * sin_lan + sin_arg_pe * cos_inc * cos_lan;
             matrix.e22 = cos_arg_pe * cos_inc * cos_lan - sin_arg_pe * sin_lan;
-
+    
             matrix.e31 = sin_arg_pe * sin_inc;
             matrix.e32 = cos_arg_pe * sin_inc;
         }
         return matrix;
     }
+}
+
+impl OrbitTrait for CompactOrbit {
 
     /// Numerically approaches the eccentric anomaly using Newton's method. Not performant; cache the result if you can!
-    pub fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
+    fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
         const MAX_ITERATIONS: u16 = 1000;
 
@@ -122,7 +130,7 @@ impl CompactOrbit {
     }
 
     /// Gets the true anomaly from the mean anomaly. Not performant; cache the result if you can!
-    pub fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
+    fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
         let eccentric_anomaly = self.get_eccentric_anomaly(mean_anomaly);
 
         // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
@@ -133,7 +141,7 @@ impl CompactOrbit {
     }
 
     /// Multiplies the input 2D vector with the 2x3 transformation matrix used to tilt the flat orbit into 3D space.
-    pub fn tilt_flat_position(&self, x: f64, y: f64) -> (f64, f64, f64) {
+    fn tilt_flat_position(&self, x: f64, y: f64) -> (f64, f64, f64) {
         let matrix = &self.get_transformation_matrix();
         return (
             x * matrix.e11 + y * matrix.e12,
@@ -143,7 +151,7 @@ impl CompactOrbit {
     }
 
     /// Gets the 2D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
-    pub fn get_flat_position_at_angle(&self, true_anomaly: f64) -> (f64, f64) {
+    fn get_flat_position_at_angle(&self, true_anomaly: f64) -> (f64, f64) {
         return (
             self.get_semi_major_axis() * (true_anomaly.cos() - self.get_eccentricity()),
             self.get_semi_minor_axis() * true_anomaly.sin()
@@ -151,35 +159,35 @@ impl CompactOrbit {
     }
 
     /// Gets the 3D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
-    pub fn get_position_at_angle(&self, true_anomaly: f64) -> (f64, f64, f64) {
+    fn get_position_at_angle(&self, true_anomaly: f64) -> (f64, f64, f64) {
         let (x, y) = self.get_flat_position_at_angle(true_anomaly);
         return self.tilt_flat_position(x, y);
     }
 
     /// Gets the mean anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    pub fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
+    fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
         let time = t.rem_euclid(1.0);
         return time * std::f64::consts::TAU + self.mean_anomaly;
     }
 
     /// Gets the eccentric anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    pub fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
+    fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
         return self.get_eccentric_anomaly(self.get_mean_anomaly_at_time(t));
     }
 
     /// Gets the true anomaly at a certain time. t ranges form 0 to 1; anything out of range will wrap around.
-    pub fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
+    fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
         return self.get_true_anomaly(self.get_mean_anomaly_at_time(t));
     }
 
     /// Gets the 2D position at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    pub fn get_flat_position_at_time(&self, t: f64) -> (f64, f64) {
+    fn get_flat_position_at_time(&self, t: f64) -> (f64, f64) {
         let true_anomaly = self.get_true_anomaly_at_time(t);
         return self.get_flat_position_at_angle(true_anomaly);
     }
 
     /// Gets the 3D position at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    pub fn get_position_at_time(&self, t: f64) -> (f64, f64, f64) {
+    fn get_position_at_time(&self, t: f64) -> (f64, f64, f64) {
         let true_anomaly = self.get_true_anomaly_at_time(t);
         return self.get_position_at_angle(true_anomaly);
     }
@@ -195,6 +203,14 @@ impl From<Orbit> for CompactOrbit {
             long_asc_node: cached.get_long_asc_node(),
             mean_anomaly: cached.get_mean_anomaly()
         };
+    }
+}
+
+impl Orbit {
+    /// Compactify the cached orbit into a compact orbit to increase memory efficiency
+    /// while sacrificing calculation speed.
+    pub fn compactify(self) -> CompactOrbit {
+        CompactOrbit::from(self)
     }
 }
 
