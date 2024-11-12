@@ -55,5 +55,20 @@ pub enum OrbitType {
     Hyperbolic
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum ApoapsisSetterError {
+    /// ### Attempt to set apoapsis to a value less than periapsis.
+    /// By definition, an orbit's apoapsis is the highest point in the orbit, 
+    /// and its periapsis is the lowest point in the orbit.  
+    /// Therefore, it doesn't make sense for the apoapsis to be lower than the periapsis.
+    ApoapsisLessThanPeriapsis,
+
+    /// ### Attempt to set apoapsis to a negative value.
+    /// By definition, the apoapsis is the highest point in the orbit.  
+    /// You can't be a negative distance away from the center of mass of the parent body.  
+    /// Therefore, it doesn't make sense for the apoapsis to be lower than zero.
+    ApoapsisNegative
+}
+
 #[cfg(test)]
 mod tests;

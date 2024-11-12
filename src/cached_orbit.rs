@@ -5,7 +5,7 @@
 // However his code is kinda incomplete and doesn't account for longitude of ascending node.
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
-use crate::{CompactOrbit, Matrix3x2, OrbitTrait, OrbitType};
+use crate::{ApoapsisSetterError, CompactOrbit, Matrix3x2, OrbitTrait, OrbitType};
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
 
@@ -251,8 +251,7 @@ impl OrbitTrait for Orbit {
 
     /// Gets the mean anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
-        let time = t.rem_euclid(1.0); // TODO: Find out if manual wrapping is more accurate
-        return time * std::f64::consts::TAU + self.mean_anomaly;
+        return t * std::f64::consts::TAU + self.mean_anomaly;
     }
 
     /// Gets the eccentric anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
@@ -290,6 +289,7 @@ impl Orbit {
     pub fn get_linear_eccentricity(&self) -> f64 { self.cache.linear_eccentricity }
     pub fn get_eccentricity       (&self) -> f64 { self.eccentricity }
 
+    pub fn set_eccentricity (&mut self, value: f64) { self.eccentricity  = value; self.update_cache(); }
     pub fn set_periapsis    (&mut self, value: f64) { self.periapsis     = value; self.update_cache(); }
     pub fn set_inclination  (&mut self, value: f64) { self.inclination   = value; self.update_cache(); }
     pub fn set_arg_pe       (&mut self, value: f64) { self.arg_pe        = value; self.update_cache(); }
@@ -299,11 +299,53 @@ impl Orbit {
 
 // Apoapsis handling
 impl Orbit {
+    /// Gets the apoapsis of the orbit.  
+    /// Returns infinity for parabolic orbits.  
+    /// Returns negative values for hyperbolic orbits.  
     pub fn get_apoapsis(&self) -> f64 {
-        // TODO
+        if self.eccentricity == 1.0 {
+            return f64::INFINITY;
+        } else {
+            return self.cache.semi_major_axis * (1.0 + self.eccentricity);
+        }
     }
-    pub fn set_apoapsis(&self) -> Result<(), String> {
-        // TODO
+
+    /// Sets the apoapsis of the orbit.  
+    /// Errors when the apoapsis is less than the periapsis, or less than zero.  
+    /// If you want a setter that does not error, use `set_apoapsis_force`, which will
+    /// try its best to interpret what you might have meant, but may have
+    /// undesirable behavior.
+    pub fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError> {
+        if apoapsis < 0.0 {
+            return Err(ApoapsisSetterError::ApoapsisNegative);
+        } else if apoapsis < self.periapsis {
+            return Err(ApoapsisSetterError::ApoapsisLessThanPeriapsis);
+        }
+
+        self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
+        self.update_cache();
+
+        return Ok(());
+    }
+
+    /// Sets the apoapsis of the orbit, with a best-effort attempt at interpreting
+    /// possibly-invalid values.  
+    /// This function will not error, but may have undesirable behavior:
+    /// - If the given apoapsis is less than the periapsis but more than zero,
+    ///   the orbit will be flipped and the periapsis will be set to the given apoapsis.
+    /// - If the given apoapsis is less than zero, the orbit will be hyperbolic
+    ///   instead.
+    /// 
+    /// If these behaviors are undesirable, consider creating a custom wrapper around
+    /// `set_eccentricity` instead.
+    pub fn set_apoapsis_force(&mut self, apoapsis: f64) {
+        let mut apoapsis = apoapsis;
+        if apoapsis < self.periapsis && apoapsis > 0.0 {
+            (apoapsis, self.periapsis) = (self.periapsis, apoapsis);
+        }
+
+        self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
+        self.update_cache();
     }
 }
 
