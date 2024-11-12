@@ -5,7 +5,7 @@ use crate::{Body, Orbit};
 pub fn mercury(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
         // Source: Wikipedia
-        Some(Orbit::new(
+        Some(Orbit::with_apoapsis(
             6.982e7,
             4.6e7,
             7.005_f64.to_radians(),
@@ -28,7 +28,7 @@ pub fn mercury(include_orbit: bool) -> Body {
 pub fn venus(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
         // Source: Wikipedia
-        Some(Orbit::new(
+        Some(Orbit::with_apoapsis(
             1.0894e8,
             1.0748e8,
             3.39458_f64.to_radians(),
@@ -51,7 +51,7 @@ pub fn venus(include_orbit: bool) -> Body {
 pub fn earth(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
         // Source: Wikipedia
-        Some(Orbit::new(
+        Some(Orbit::with_apoapsis(
             1.52097597e11,
             1.47098450e11,
             0.00005_f64.to_radians(),
@@ -74,7 +74,7 @@ pub fn earth(include_orbit: bool) -> Body {
 pub fn mars(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
         // Source: Wikipedia
-        Some(Orbit::new(
+        Some(Orbit::with_apoapsis(
             2.49261e8,
             2.0665e8,
             1.850_f64.to_radians(),

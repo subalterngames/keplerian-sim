@@ -5,7 +5,7 @@ use crate::{Body, Orbit};
 pub fn the_sun(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
         // Source: Wikipedia
-        Some(Orbit::new(
+        Some(Orbit::with_apoapsis(
             2.36518e20,
             2.36518e20,
             // I can't seem to find the orientation of the Sun's orbit
