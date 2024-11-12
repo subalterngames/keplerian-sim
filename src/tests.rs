@@ -2,6 +2,10 @@
 
 use crate::{CompactOrbit, Orbit, OrbitTrait};
 use std::f64::consts::PI;
+use std::f64::{
+    INFINITY as INF,
+    NEG_INFINITY as NINF
+};
 
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
@@ -50,18 +54,13 @@ fn assert_orbit_positions_2d(orbit: &impl OrbitTrait, tests: &[(f64, Vec2)]) {
     }
 }
 
-const ORBIT_POLL_ANGLES: [f64; 5] = [
-    0.0 * PI,
-    0.5 * PI,
-    1.0 * PI,
-    1.5 * PI,
-    2.0 * PI
-];
+const ORBIT_POLL_ANGLES: usize = 255;
 fn poll_orbit(orbit: &impl OrbitTrait) -> Vec<Vec3> {
-    let mut vec: Vec<Vec3> = Vec::with_capacity(ORBIT_POLL_ANGLES.len());
+    let mut vec: Vec<Vec3> = Vec::with_capacity(ORBIT_POLL_ANGLES);
 
-    for angle in ORBIT_POLL_ANGLES.iter() {
-        vec.push(orbit.get_position_at_time(*angle));
+    for i in 0..ORBIT_POLL_ANGLES {
+        let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+        vec.push(orbit.get_position_at_angle(angle));
     }
 
     return vec;
@@ -145,6 +144,89 @@ fn tilted_equidistant() {
 
         assert_almost_eq(distance, 1.0, "Distance");
     }
+}
+
+#[test]
+fn tilted_90deg() {
+    let orbit = Orbit::new(
+        0.0,
+        1.0,
+        PI / 2.0,
+        0.0,
+        0.0,
+        0.0
+    );
+
+    // Transform test
+    let tests = [
+        // Before and after transformation
+        ((1.0, 0.0), (1.0, 0.0, 0.0)),
+        ((0.0, 1.0), (0.0, 0.0, 1.0)),
+        ((-1.0, 0.0), (-1.0, 0.0, 0.0)),
+        ((0.0, -1.0), (0.0, 0.0, -1.0)),
+    ];
+
+    for (point, expected) in tests.iter() {
+        let transformed = orbit.tilt_flat_position(point.0, point.1);
+
+        assert_almost_eq_vec3(transformed, *expected);
+    }
+}
+
+#[test]
+fn apoapsis_of_two() {
+    let orbit = Orbit::with_apoapsis(
+        2.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    );
+    
+    let point_at_apoapsis = orbit.get_position_at_angle(PI);
+    let point_at_periapsis = orbit.get_position_at_angle(0.0);
+
+    assert_almost_eq_vec3(point_at_apoapsis, (-2.0, 0.0, 0.0));
+    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0));
+}
+
+#[test]
+fn huge_apoapsis() {
+    let orbit = Orbit::with_apoapsis(
+        10000.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    );
+
+    let point_at_apoapsis = orbit.get_position_at_angle(PI);
+    let point_at_periapsis = orbit.get_position_at_angle(0.0);
+
+    assert_almost_eq_vec3(point_at_apoapsis, (-10000.0, 0.0, 0.0));
+    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0));
+}
+
+#[test]
+fn parabolic() {
+    let orbit = Orbit::new(
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    );
+
+    let point_near_infinity = orbit.get_position_at_angle(PI - 1e-7);
+    let point_at_periapsis = orbit.get_position_at_angle(0.0);
+
+    assert!(vec3_len(point_near_infinity) > 1e9, "Point near infinity is not far enough!");
+    assert_almost_eq(point_near_infinity.1, 0.0, "Y coord near infinity");
+    assert_almost_eq(point_near_infinity.2, 0.0, "Z coord near infinity");
+    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0));
 }
 
 #[test]
