@@ -88,3 +88,7 @@ fn keplers_equation_hyperbolic(mean_anomaly: f64, eccentric_anomaly: f64, eccent
 fn keplers_equation_hyperbolic_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
     return eccentricity * eccentric_anomaly.cosh() - 1.0;
 }
+
+fn keplers_equation_hyperbolic_second_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
+    return eccentricity * eccentric_anomaly.sinh();
+}

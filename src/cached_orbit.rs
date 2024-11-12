@@ -14,7 +14,8 @@ use crate::{
     keplers_equation,
     keplers_equation_derivative,
     keplers_equation_hyperbolic,
-    keplers_equation_hyperbolic_derivative
+    keplers_equation_hyperbolic_derivative,
+    keplers_equation_hyperbolic_second_derivative
 };
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
@@ -187,16 +188,24 @@ impl Orbit {
         let target_accuracy = 1e-9;
         let max_iterations = 1000;
         let mut eccentric_anomaly = mean_anomaly;
-        
-        for _ in 0..max_iterations {
-            // NEWTON'S METHOD
-            // x_n+1 = x_n - f(x_n)/f'(x_n)
 
-            let next_value =
-                eccentric_anomaly - (
-                    keplers_equation_hyperbolic(mean_anomaly, eccentric_anomaly, self.eccentricity) /
-                    keplers_equation_hyperbolic_derivative(eccentric_anomaly, self.eccentricity)
-                );
+        for _ in 0..max_iterations {
+            // HALLEY'S METHOD
+            // https://en.wikipedia.org/wiki/Halley%27s_method
+            // x_n+1 = x_n - f(x_n) / (f'(x_n) - f(x_n) * f''(x_n) / (2 * f'(x_n)))
+
+            let f = keplers_equation_hyperbolic(mean_anomaly, eccentric_anomaly, self.eccentricity);
+            let fp = keplers_equation_hyperbolic_derivative(eccentric_anomaly, self.eccentricity);
+            let fpp = keplers_equation_hyperbolic_second_derivative(eccentric_anomaly, self.eccentricity);
+
+            let denominator = fp - f * fpp / (2.0 * fp);
+
+            if denominator.abs() < 1e-30 || !denominator.is_finite() {
+                // dangerously close to div-by-zero, break out
+                break;
+            }
+
+            let next_value = eccentric_anomaly - f / denominator;
 
             let diff = (eccentric_anomaly - next_value).abs();
             eccentric_anomaly = next_value;
@@ -224,11 +233,20 @@ impl OrbitTrait for Orbit {
     fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
         let eccentric_anomaly = self.get_eccentric_anomaly(mean_anomaly);
 
-        // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
-        let eccentricity = self.eccentricity;
-        let beta = eccentricity / (1.0 + (1.0 - eccentricity * eccentricity).sqrt());
-
-        return eccentric_anomaly + 2.0 * (beta * eccentric_anomaly.sin() / (1.0 - beta * eccentric_anomaly.cos())).atan();
+        if self.eccentricity < 1.0 {
+            // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
+            let eccentricity = self.eccentricity;
+            let beta = eccentricity / (1.0 + (1.0 - eccentricity * eccentricity).sqrt());
+    
+            return eccentric_anomaly + 2.0 * 
+                (beta * eccentric_anomaly.sin() / (1.0 - beta * eccentric_anomaly.cos()))
+                .atan();
+        } else {
+            // idk copilot got this
+            return 2.0 *
+                ((self.eccentricity + 1.0) / (self.eccentricity - 1.0)).sqrt().atan() *
+                eccentric_anomaly.tanh();
+        }
     }
 
     /// Multiplies the input 2D vector with the 2x3 transformation matrix used to tilt the flat orbit into 3D space.

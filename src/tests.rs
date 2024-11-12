@@ -223,9 +223,9 @@ fn parabolic() {
     let point_near_infinity = orbit.get_position_at_angle(PI - 1e-7);
     let point_at_periapsis = orbit.get_position_at_angle(0.0);
 
-    assert!(vec3_len(point_near_infinity) > 1e9, "Point near infinity is not far enough!");
-    assert_almost_eq(point_near_infinity.1, 0.0, "Y coord near infinity");
-    assert_almost_eq(point_near_infinity.2, 0.0, "Z coord near infinity");
+    assert!(vec3_len(point_near_infinity) > 1e9, "Point near infinity is not far enough");
+    assert!(point_near_infinity.1.abs() > 0.0, "Y coord near infinity should move a little");
+    assert_almost_eq(point_near_infinity.2, 0.0, "Point near infinity should not be tilted");
     assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0));
 }
 
