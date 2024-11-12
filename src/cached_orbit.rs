@@ -187,7 +187,9 @@ impl Orbit {
     fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
         let max_iterations = 1000;
-        let mut eccentric_anomaly = mean_anomaly;
+        let mut eccentric_anomaly =
+            (2.0 * mean_anomaly.abs() / self.eccentricity).ln().max(0.01) *
+            mean_anomaly.signum();
 
         for _ in 0..max_iterations {
             // HALLEY'S METHOD

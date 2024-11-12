@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     print!("Simulating parabolic trajectory for {SIMULATION_TICKS} ticks...");
 
     for i in 0..SIMULATION_TICKS {
-        let time = i as f64 / SIMULATION_TICKS as f64 - 0.5;
+        let time = 10.0 * i as f64 / SIMULATION_TICKS as f64 - 5.0;
         let pos = orbit.get_position_at_time(time);
         positions.push(pos);
     }

@@ -2,10 +2,6 @@
 
 use crate::{CompactOrbit, Orbit, OrbitTrait};
 use std::f64::consts::PI;
-use std::f64::{
-    INFINITY as INF,
-    NEG_INFINITY as NINF
-};
 
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);

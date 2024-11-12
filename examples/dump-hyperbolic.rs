@@ -15,10 +15,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let mut positions: Vec<(f64, f64, f64)> = Vec::with_capacity(SIMULATION_TICKS as usize);
 
-    print!("Simulating parabolic trajectory for {SIMULATION_TICKS} ticks...");
+    print!("Simulating hyperbolic trajectory for {SIMULATION_TICKS} ticks...");
 
     for i in 0..SIMULATION_TICKS {
-        let time = i as f64 / SIMULATION_TICKS as f64 - 0.5;
+        let time = 10.0 * i as f64 / SIMULATION_TICKS as f64 - 5.0;
         let pos = orbit.get_position_at_time(time);
         positions.push(pos);
     }
