@@ -159,7 +159,7 @@ impl Orbit {
 
         // Starting guess
         let mut eccentric_anomaly =
-            if self.eccentricity > 0.8 { 3.14 }
+            if self.eccentricity > 0.8 { std::f64::consts::PI }
             else { self.eccentricity };
         
         for _ in 0..max_iterations {

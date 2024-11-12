@@ -7,6 +7,8 @@ type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
 
 const ALMOST_EQ_TOLERANCE: f64 = 1e-6;
+const ORBIT_POLL_ANGLES: usize = 4096;
+
 fn assert_almost_eq(a: f64, b: f64, what: &str) {
     let dist = (a - b).abs();
     let msg = format!(
@@ -26,9 +28,14 @@ fn vec3_len(v: Vec3) -> f64 {
 }
 
 fn assert_eq_vec3(a: Vec3, b: Vec3, what: &str) {
-    assert_eq!(a.0, b.0, "X coord of {what}");
-    assert_eq!(a.1, b.1, "Y coord of {what}");
-    assert_eq!(a.2, b.2, "Z coord of {what}");
+    assert_eq!(a.0.to_bits(), b.0.to_bits(), "X coord of {what}");
+    assert_eq!(a.1.to_bits(), b.1.to_bits(), "Y coord of {what}");
+    assert_eq!(a.2.to_bits(), b.2.to_bits(), "Z coord of {what}");
+}
+
+fn assert_eq_vec2(a: Vec2, b: Vec2, what: &str) {
+    assert_eq!(a.0.to_bits(), b.0.to_bits(), "X coord of {what}");
+    assert_eq!(a.1.to_bits(), b.1.to_bits(), "Y coord of {what}");
 }
 
 fn assert_almost_eq_vec3(a: Vec3, b: Vec3, what: &str) {
@@ -56,13 +63,22 @@ fn assert_orbit_positions_2d(orbit: &impl OrbitTrait, tests: &[(&str, f64, Vec2)
     }
 }
 
-const ORBIT_POLL_ANGLES: usize = 1_024;
 fn poll_orbit(orbit: &impl OrbitTrait) -> Vec<Vec3> {
     let mut vec: Vec<Vec3> = Vec::with_capacity(ORBIT_POLL_ANGLES);
 
     for i in 0..ORBIT_POLL_ANGLES {
         let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
         vec.push(orbit.get_position_at_angle(angle));
+    }
+
+    return vec;
+}
+fn poll_flat(orbit: &impl OrbitTrait) -> Vec<Vec2> {
+    let mut vec: Vec<Vec2> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+    for i in 0..ORBIT_POLL_ANGLES {
+        let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+        vec.push(orbit.get_flat_position_at_angle(angle));
     }
 
     return vec;
@@ -261,22 +277,9 @@ fn orbit_conversion_base_test(orbit: Orbit, what: &str) {
     let compact_orbit = CompactOrbit::from(orbit.clone());
     let reexpanded_orbit = Orbit::from(compact_orbit.clone());
     
-    let compact_message = format!("Original -> Compact ({what})");
-    let reexpanded_message = format!("Compact -> Reexpanded ({what})");
+    let compact_message = format!("Original / Compact ({what})");
+    let reexpanded_message = format!("Compact /  Reexpanded ({what})");
 
-    {
-        let original_ecc = poll_eccentric_anomaly(&orbit);
-        let compact_ecc = poll_eccentric_anomaly(&compact_orbit);
-        let reexpanded_ecc = poll_eccentric_anomaly(&reexpanded_orbit);
-
-        let compact_message = format!("{compact_message} (eccentric anomaly)");
-        let reexpanded_message = format!("{reexpanded_message} (eccentric anomaly)");
-
-        for i in 0..original_ecc.len() {
-            assert_almost_eq(original_ecc[i], compact_ecc[i], &compact_message);
-            assert_almost_eq(original_ecc[i], reexpanded_ecc[i], &reexpanded_message);
-        }
-    }
     {
         let original_transforms = poll_transform(&orbit);
         let compact_transforms = poll_transform(&compact_orbit);
@@ -288,6 +291,76 @@ fn orbit_conversion_base_test(orbit: Orbit, what: &str) {
         for i in 0..original_transforms.len() {
             assert_eq_vec3(original_transforms[i], compact_transforms[i], &compact_message);
             assert_eq_vec3(original_transforms[i], reexpanded_transforms[i], &reexpanded_message);
+        }
+    }
+    {
+        let original_ecc = poll_eccentric_anomaly(&orbit);
+        let compact_ecc = poll_eccentric_anomaly(&compact_orbit);
+        let reexpanded_ecc = poll_eccentric_anomaly(&reexpanded_orbit);
+
+        for i in 0..original_ecc.len() {
+            assert_eq!(original_ecc[i], compact_ecc[i], "{compact_message} (eccentric anomaly)");
+            assert_eq!(original_ecc[i], reexpanded_ecc[i], "{reexpanded_message} (eccentric anomaly)");
+        }
+    }
+    {
+        let original_true = {
+            let mut vec: Vec<f64> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+            for i in 0..ORBIT_POLL_ANGLES {
+                let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+                let true_anomaly = orbit.get_true_anomaly(angle);
+                vec.push(true_anomaly);
+            }
+
+            vec
+        };
+        let compact_true = {
+            let mut vec: Vec<f64> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+            for i in 0..ORBIT_POLL_ANGLES {
+                let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+                let true_anomaly = compact_orbit.get_true_anomaly(angle);
+                vec.push(true_anomaly);
+            }
+
+            vec
+        };
+        let reexpanded_true = {
+            let mut vec: Vec<f64> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+            for i in 0..ORBIT_POLL_ANGLES {
+                let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+                vec.push(reexpanded_orbit.get_true_anomaly(angle));
+            }
+
+            vec
+        };
+
+        for i in 0..original_true.len() {
+            assert_eq!(original_true[i], compact_true[i], "{compact_message} (true anomaly) (i={i})");
+            assert_eq!(original_true[i], reexpanded_true[i], "{reexpanded_message} (true anomaly) (i={i})");
+        }
+    }
+    {
+        let original_eccentricity = orbit.get_eccentricity();
+        let compact_eccentricity = compact_orbit.eccentricity;
+        let reexpanded_eccentricity = reexpanded_orbit.get_eccentricity();
+
+        assert_eq!(original_eccentricity, compact_eccentricity, "{compact_message} (eccentricity)");
+        assert_eq!(original_eccentricity, reexpanded_eccentricity, "{reexpanded_message} (eccentricity)");
+    }
+    {
+        let original_flat = poll_flat(&orbit);
+        let compact_flat = poll_flat(&compact_orbit);
+        let reexpanded_flat = poll_flat(&reexpanded_orbit);
+
+        let compact_message = format!("{compact_message} (flat)");
+        let reexpanded_message = format!("{reexpanded_message} (flat)");
+
+        for i in 0..original_flat.len() {
+            assert_eq_vec2(original_flat[i], compact_flat[i], &compact_message);
+            assert_eq_vec2(original_flat[i], reexpanded_flat[i], &reexpanded_message);
         }
     }
     {

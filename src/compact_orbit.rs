@@ -274,9 +274,21 @@ impl OrbitTrait for CompactOrbit {
 
     /// Gets the 2D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
     fn get_flat_position_at_angle(&self, true_anomaly: f64) -> (f64, f64) {
+        // Polar equation for conic section:
+        // r = p / (1 + e*cos(theta))
+        // ...where:
+        // r = radius from focus
+        // p = semi-latus rectum (periapsis * (1 + eccentricity))
+        // e = eccentricity
+        // theta = true anomaly
+
+        let semi_latus_rectum = self.periapsis * (1.0 + self.eccentricity);
+        let radius = semi_latus_rectum / (1.0 + self.eccentricity * true_anomaly.cos());
+
+        // We then convert it into Cartesion (X, Y) coordinates:
         return (
-            self.get_semi_major_axis() * (true_anomaly.cos() - self.eccentricity),
-            self.get_semi_minor_axis() * true_anomaly.sin()
+            radius * true_anomaly.cos(),
+            radius * true_anomaly.sin()
         );
     }
 
