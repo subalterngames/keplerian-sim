@@ -227,6 +227,12 @@ fn parabolic() {
     assert!(point_near_infinity.1.abs() > 0.0, "Y coord near infinity should move a little");
     assert_almost_eq(point_near_infinity.2, 0.0, "Point near infinity should not be tilted");
     assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0));
+
+    let point_at_asymptote = orbit.get_position_at_angle(PI);
+
+    assert!(point_at_asymptote.0.is_nan(), "X at asymptote should be undefined");
+    assert!(point_at_asymptote.1.is_nan(), "Y at asymptote should be undefined");
+    assert!(point_at_asymptote.2.is_nan(), "Z at asymptote should be undefined");
 }
 
 #[test]
