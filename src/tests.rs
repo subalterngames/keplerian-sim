@@ -25,38 +25,64 @@ fn vec3_len(v: Vec3) -> f64 {
     ).sqrt();
 }
 
-fn assert_almost_eq_vec3(a: Vec3, b: Vec3) {
-    assert_almost_eq(a.0, b.0, "X coord");
-    assert_almost_eq(a.1, b.1, "Y coord");
-    assert_almost_eq(a.2, b.2, "Z coord");
+fn assert_eq_vec3(a: Vec3, b: Vec3, what: &str) {
+    assert_eq!(a.0, b.0, "X coord of {what}");
+    assert_eq!(a.1, b.1, "Y coord of {what}");
+    assert_eq!(a.2, b.2, "Z coord of {what}");
 }
 
-fn assert_almost_eq_vec2(a: Vec2, b: Vec2) {
-    assert_almost_eq(a.0, b.0, "X coord");
-    assert_almost_eq(a.1, b.1, "Y coord");
+fn assert_almost_eq_vec3(a: Vec3, b: Vec3, what: &str) {
+    assert_almost_eq(a.0, b.0, &("X coord of ".to_string() + what));
+    assert_almost_eq(a.1, b.1, &("Y coord of ".to_string() + what));
+    assert_almost_eq(a.2, b.2, &("Z coord of ".to_string() + what));
 }
 
-fn assert_orbit_positions_3d(orbit: &impl OrbitTrait, tests: &[(f64, Vec3)]) {
-    for (angle, expected) in tests.iter() {
+fn assert_almost_eq_vec2(a: Vec2, b: Vec2, what: &str) {
+    assert_almost_eq(a.0, b.0, &("X coord of ".to_string() + what));
+    assert_almost_eq(a.1, b.1, &("Y coord of ".to_string() + what));
+}
+
+fn assert_orbit_positions_3d(orbit: &impl OrbitTrait, tests: &[(&str, f64, Vec3)]) {
+    for (what, angle, expected) in tests.iter() {
         let pos = orbit.get_position_at_angle(*angle);
-        assert_almost_eq_vec3(pos, *expected);
+        assert_almost_eq_vec3(pos, *expected, what);
     }
 }
 
-fn assert_orbit_positions_2d(orbit: &impl OrbitTrait, tests: &[(f64, Vec2)]) {
-    for (angle, expected) in tests.iter() {
+fn assert_orbit_positions_2d(orbit: &impl OrbitTrait, tests: &[(&str, f64, Vec2)]) {
+    for (what, angle, expected) in tests.iter() {
         let pos = orbit.get_flat_position_at_angle(*angle);
-        assert_almost_eq_vec2(pos, *expected);
+        assert_almost_eq_vec2(pos, *expected, what);
     }
 }
 
-const ORBIT_POLL_ANGLES: usize = 255;
+const ORBIT_POLL_ANGLES: usize = 1_024;
 fn poll_orbit(orbit: &impl OrbitTrait) -> Vec<Vec3> {
     let mut vec: Vec<Vec3> = Vec::with_capacity(ORBIT_POLL_ANGLES);
 
     for i in 0..ORBIT_POLL_ANGLES {
         let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
         vec.push(orbit.get_position_at_angle(angle));
+    }
+
+    return vec;
+}
+fn poll_transform(orbit: &impl OrbitTrait) -> Vec<Vec3> {
+    let mut vec: Vec<Vec3> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+    for i in 0..ORBIT_POLL_ANGLES {
+        let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+        vec.push(orbit.tilt_flat_position(1.0 * angle.cos(), 1.0 * angle.sin()));
+    }
+
+    return vec;
+}
+fn poll_eccentric_anomaly(orbit: &impl OrbitTrait) -> Vec<f64> {
+    let mut vec: Vec<f64> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+    for i in 0..ORBIT_POLL_ANGLES {
+        let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+        vec.push(orbit.get_eccentric_anomaly(angle));
     }
 
     return vec;
@@ -78,11 +104,11 @@ fn unit_orbit_angle_3d() {
     let orbit = unit_orbit();
 
     assert_orbit_positions_3d(&orbit, &[
-        (0.0 * PI, (1.0, 0.0, 0.0)),
-        (0.5 * PI, (0.0, 1.0, 0.0)),
-        (1.0 * PI, (-1.0, 0.0, 0.0)),
-        (1.5 * PI, (0.0, -1.0, 0.0)),
-        (2.0 * PI, (1.0, 0.0, 0.0)),
+        ("unit orbit 1", 0.0 * PI, (1.0, 0.0, 0.0)),
+        ("unit orbit 2", 0.5 * PI, (0.0, 1.0, 0.0)),
+        ("unit orbit 3", 1.0 * PI, (-1.0, 0.0, 0.0)),
+        ("unit orbit 4", 1.5 * PI, (0.0, -1.0, 0.0)),
+        ("unit orbit 5", 2.0 * PI, (1.0, 0.0, 0.0)),
     ]);
 }
 
@@ -91,11 +117,11 @@ fn unit_orbit_angle_2d() {
     let orbit = unit_orbit();
 
     assert_orbit_positions_2d(&orbit, &[
-        (0.0 * PI, (1.0, 0.0)),
-        (0.5 * PI, (0.0, 1.0)),
-        (1.0 * PI, (-1.0, 0.0)),
-        (1.5 * PI, (0.0, -1.0)),
-        (2.0 * PI, (1.0, 0.0)),
+        ("unit orbit 1", 0.0 * PI, (1.0, 0.0)),
+        ("unit orbit 2", 0.5 * PI, (0.0, 1.0)),
+        ("unit orbit 3", 1.0 * PI, (-1.0, 0.0)),
+        ("unit orbit 4", 1.5 * PI, (0.0, -1.0)),
+        ("unit orbit 5", 2.0 * PI, (1.0, 0.0)),
     ]);
 }
 
@@ -156,16 +182,16 @@ fn tilted_90deg() {
     // Transform test
     let tests = [
         // Before and after transformation
-        ((1.0, 0.0), (1.0, 0.0, 0.0)),
-        ((0.0, 1.0), (0.0, 0.0, 1.0)),
-        ((-1.0, 0.0), (-1.0, 0.0, 0.0)),
-        ((0.0, -1.0), (0.0, 0.0, -1.0)),
+        (("Vector 1"), (1.0, 0.0),  (1.0, 0.0, 0.0)),
+        (("Vector 2"), (0.0, 1.0),  (0.0, 0.0, 1.0)),
+        (("Vector 3"), (-1.0, 0.0), (-1.0, 0.0, 0.0)),
+        (("Vector 4"), (0.0, -1.0), (0.0, 0.0, -1.0)),
     ];
 
-    for (point, expected) in tests.iter() {
+    for (what, point, expected) in tests.iter() {
         let transformed = orbit.tilt_flat_position(point.0, point.1);
 
-        assert_almost_eq_vec3(transformed, *expected);
+        assert_almost_eq_vec3(transformed, *expected, what);
     }
 }
 
@@ -183,8 +209,8 @@ fn apoapsis_of_two() {
     let point_at_apoapsis = orbit.get_position_at_angle(PI);
     let point_at_periapsis = orbit.get_position_at_angle(0.0);
 
-    assert_almost_eq_vec3(point_at_apoapsis, (-2.0, 0.0, 0.0));
-    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0));
+    assert_almost_eq_vec3(point_at_apoapsis, (-2.0, 0.0, 0.0), "Ap");
+    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0), "Pe");
 }
 
 #[test]
@@ -201,8 +227,8 @@ fn huge_apoapsis() {
     let point_at_apoapsis = orbit.get_position_at_angle(PI);
     let point_at_periapsis = orbit.get_position_at_angle(0.0);
 
-    assert_almost_eq_vec3(point_at_apoapsis, (-10000.0, 0.0, 0.0));
-    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0));
+    assert_almost_eq_vec3(point_at_apoapsis, (-10000.0, 0.0, 0.0), "Ap");
+    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0), "Pe");
 }
 
 #[test]
@@ -221,8 +247,8 @@ fn parabolic() {
 
     assert!(vec3_len(point_near_infinity) > 1e9, "Point near infinity is not far enough");
     assert!(point_near_infinity.1.abs() > 0.0, "Y coord near infinity should move a little");
-    assert_almost_eq(point_near_infinity.2, 0.0, "Point near infinity should not be tilted");
-    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0));
+    assert_almost_eq(point_near_infinity.2, 0.0, "Point near infinity should be flat");
+    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0), "Pe");
 
     let point_at_asymptote = orbit.get_position_at_angle(PI);
 
@@ -231,19 +257,181 @@ fn parabolic() {
     assert!(point_at_asymptote.2.is_nan(), "Z at asymptote should be undefined");
 }
 
-#[test]
-fn orbit_conversion() {
-    let original_orbit = Orbit::new_default();
-    let original_positions = poll_orbit(&original_orbit);
-
-    let compact_orbit = CompactOrbit::from(original_orbit.clone());
-    let compact_positions = poll_orbit(&compact_orbit);
-
+fn orbit_conversion_base_test(orbit: Orbit, what: &str) {
+    let compact_orbit = CompactOrbit::from(orbit.clone());
     let reexpanded_orbit = Orbit::from(compact_orbit.clone());
-    let reexpanded_positions = poll_orbit(&reexpanded_orbit);
+    
+    let compact_message = format!("Original -> Compact ({what})");
+    let reexpanded_message = format!("Compact -> Reexpanded ({what})");
 
-    for i in 0..original_positions.len() {
-        assert_almost_eq_vec3(original_positions[i], compact_positions[i]);
-        assert_almost_eq_vec3(original_positions[i], reexpanded_positions[i]);
+    {
+        let original_ecc = poll_eccentric_anomaly(&orbit);
+        let compact_ecc = poll_eccentric_anomaly(&compact_orbit);
+        let reexpanded_ecc = poll_eccentric_anomaly(&reexpanded_orbit);
+
+        let compact_message = format!("{compact_message} (eccentric anomaly)");
+        let reexpanded_message = format!("{reexpanded_message} (eccentric anomaly)");
+
+        for i in 0..original_ecc.len() {
+            assert_almost_eq(original_ecc[i], compact_ecc[i], &compact_message);
+            assert_almost_eq(original_ecc[i], reexpanded_ecc[i], &reexpanded_message);
+        }
+    }
+    {
+        let original_transforms = poll_transform(&orbit);
+        let compact_transforms = poll_transform(&compact_orbit);
+        let reexpanded_transforms = poll_transform(&reexpanded_orbit);
+
+        let compact_message = format!("{compact_message} (transform)");
+        let reexpanded_message = format!("{reexpanded_message} (transform)");
+
+        for i in 0..original_transforms.len() {
+            assert_eq_vec3(original_transforms[i], compact_transforms[i], &compact_message);
+            assert_eq_vec3(original_transforms[i], reexpanded_transforms[i], &reexpanded_message);
+        }
+    }
+    {
+        let original_positions = poll_orbit(&orbit);
+        let compact_positions = poll_orbit(&compact_orbit);
+        let reexpanded_positions = poll_orbit(&reexpanded_orbit);
+
+        let compact_message = format!("{compact_message} (position)");
+        let reexpanded_message = format!("{reexpanded_message} (position)");
+
+        for i in 0..original_positions.len() {
+            assert_eq_vec3(original_positions[i], compact_positions[i], &compact_message);
+            assert_eq_vec3(original_positions[i], reexpanded_positions[i], &reexpanded_message);
+        }
+    }
+}
+
+#[test]
+fn orbit_conversions() {
+    let orbits = [
+        (
+            "Unit orbit",
+            Orbit::new(
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Mildly eccentric orbit",
+            Orbit::new(
+                0.39,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Very eccentric orbit",
+            Orbit::new(
+                0.99,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Parabolic trajectory",
+            Orbit::new(
+                1.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Barely hyperbolic trajectory",
+            Orbit::new(
+                1.01,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Very hyperbolic trajectory",
+            Orbit::new(
+                9.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Extremely hyperbolic trajectory",
+            Orbit::new(
+                100.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Tilted orbit",
+            Orbit::new(
+                0.0,
+                1.0,
+                2.848915582093,
+                1.9520945821,
+                2.1834987325,
+                0.69482153021
+            )
+        ),
+        (
+            "Tilted eccentric",
+            Orbit::new(
+                0.39,
+                1.0,
+                2.848915582093,
+                1.9520945821,
+                2.1834987325,
+                0.69482153021
+            )
+        ),
+        (
+            "Tilted parabolic",
+            Orbit::new(
+                1.0,
+                1.0,
+                2.848915582093,
+                1.9520945821,
+                2.1834987325,
+                0.69482153021
+            )
+        ),
+        (
+            "Tilted hyperbolic",
+            Orbit::new(
+                1.8,
+                1.0,
+                2.848915582093,
+                1.9520945821,
+                2.1834987325,
+                0.69482153021
+            )
+        ),
+    ];
+
+    for (what, orbit) in orbits.iter() {
+        orbit_conversion_base_test(orbit.clone(), what);
     }
 }
