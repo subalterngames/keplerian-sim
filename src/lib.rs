@@ -72,3 +72,19 @@ pub enum ApoapsisSetterError {
 
 #[cfg(test)]
 mod tests;
+
+
+fn keplers_equation(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
+    return eccentric_anomaly - (eccentricity * eccentric_anomaly.sin()) - mean_anomaly;
+}
+fn keplers_equation_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
+    return 1.0 - (eccentricity * eccentric_anomaly.cos());
+}
+
+fn keplers_equation_hyperbolic(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
+    return eccentricity * eccentric_anomaly.sinh() - eccentric_anomaly - mean_anomaly;
+}
+
+fn keplers_equation_hyperbolic_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
+    return eccentricity * eccentric_anomaly.cosh() - 1.0;
+}

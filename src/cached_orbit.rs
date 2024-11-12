@@ -5,7 +5,17 @@
 // However his code is kinda incomplete and doesn't account for longitude of ascending node.
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
-use crate::{ApoapsisSetterError, CompactOrbit, Matrix3x2, OrbitTrait, OrbitType};
+use crate::{
+    ApoapsisSetterError,
+    CompactOrbit,
+    Matrix3x2,
+    OrbitTrait,
+    OrbitType,
+    keplers_equation,
+    keplers_equation_derivative,
+    keplers_equation_hyperbolic,
+    keplers_equation_hyperbolic_derivative
+};
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
 
@@ -96,7 +106,6 @@ impl Orbit {
             OrbitType::Hyperbolic
         };
 
-        // let semi_major_axis = (apoapsis + periapsis) / 2.0;
         let semi_major_axis = periapsis / (1.0 - eccentricity);
         let semi_minor_axis = match orbit_type {
             OrbitType::Elliptic => (semi_major_axis * (1.0 - eccentricity * eccentricity)).sqrt(),
@@ -349,11 +358,10 @@ impl Orbit {
     }
 }
 
-// TODO: impl hyperbolic for compactorbit
 impl From<CompactOrbit> for Orbit {
     fn from(compact: CompactOrbit) -> Self {
         return Self::new(
-            compact.apoapsis,
+            compact.eccentricity,
             compact.periapsis,
             compact.inclination,
             compact.arg_pe,
@@ -369,19 +377,4 @@ impl CompactOrbit {
     pub fn expand(self) -> Orbit {
         Orbit::from(self)
     }
-}
-
-fn keplers_equation(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return eccentric_anomaly - (eccentricity * eccentric_anomaly.sin()) - mean_anomaly;
-}
-fn keplers_equation_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return 1.0 - (eccentricity * eccentric_anomaly.cos());
-}
-
-fn keplers_equation_hyperbolic(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return eccentricity * eccentric_anomaly.sinh() - eccentric_anomaly - mean_anomaly;
-}
-
-fn keplers_equation_hyperbolic_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return eccentricity * eccentric_anomaly.cosh() - 1.0;
 }

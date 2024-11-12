@@ -5,7 +5,15 @@
 // However his code is kinda incomplete and doesn't account for longitude of ascending node.
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
-use crate::{Matrix3x2, Orbit, OrbitTrait};
+use crate::{
+    Matrix3x2,
+    Orbit,
+    OrbitTrait,
+    keplers_equation,
+    keplers_equation_derivative,
+    keplers_equation_hyperbolic,
+    keplers_equation_hyperbolic_derivative
+};
 
 /// A struct representing a Keplerian orbit.  
 /// This struct minimizes memory footprint by not caching variables.  
@@ -13,8 +21,11 @@ use crate::{Matrix3x2, Orbit, OrbitTrait};
 /// For this reason, you might consider using the `Orbit` struct instead.
 #[derive(Clone, Debug)]
 pub struct CompactOrbit {
-    /// The apoapsis of the orbit, in meters.
-    pub apoapsis: f64,
+    /// The eccentricity of the orbit.  
+    /// e < 1: ellipse  
+    /// e = 1: parabola  
+    /// e > 1: hyperbola  
+    pub eccentricity: f64,
 
     /// The periapsis of the orbit, in meters.
     pub periapsis: f64,
@@ -35,39 +46,44 @@ pub struct CompactOrbit {
 // Initialization and cache management
 impl CompactOrbit {
     pub fn new(
-        apoapsis: f64, periapsis: f64,
+        eccentricity: f64, periapsis: f64,
         inclination: f64, arg_pe: f64, long_asc_node: f64,
         mean_anomaly: f64
     ) -> CompactOrbit {
-        // let cache = Self::get_cached_calculations(apoapsis, periapsis, inclination, arg_pe, long_asc_node);
         return CompactOrbit {
-            apoapsis, periapsis,
+            eccentricity, periapsis,
             inclination, arg_pe, long_asc_node,
             mean_anomaly,
         };
     }
 
     pub fn new_default() -> CompactOrbit {
-        return Self::new(1.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+        return Self::new(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     }
 }
 
 // The actual orbit position calculations
 impl CompactOrbit {
     pub fn get_semi_major_axis(&self) -> f64 {
-        return (self.apoapsis + self.periapsis) / 2.0;
+        return self.periapsis / (1.0 - self.eccentricity);
     }
     
     pub fn get_semi_minor_axis(&self) -> f64 {
-        return (self.apoapsis * self.periapsis).sqrt();
+        let semi_major_axis = self.get_semi_major_axis();
+        let eccentricity_squared = self.eccentricity * self.eccentricity;
+        if self.eccentricity < 1.0 {
+            return semi_major_axis * (1.0 - eccentricity_squared).sqrt();
+        } else {
+            return semi_major_axis * (eccentricity_squared - 1.0).sqrt();
+        }
     }
     
     pub fn get_linear_eccentricity(&self) -> f64 {
         return self.get_semi_major_axis() - self.periapsis;
     }
     
-    pub fn get_eccentricity(&self) -> f64 {
-        return self.get_linear_eccentricity() / self.get_semi_major_axis();
+    pub fn get_apoapsis(&self) -> f64 {
+        todo!(); // TODO
     }
 }
 
@@ -91,17 +107,13 @@ impl CompactOrbit {
         }
         return matrix;
     }
-}
 
-impl OrbitTrait for CompactOrbit {
-
-    /// Numerically approaches the eccentric anomaly using Newton's method. Not performant; cache the result if you can!
-    fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
+    fn get_eccentric_anomaly_elliptic(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
         const MAX_ITERATIONS: u16 = 1000;
-
+    
         // Starting guess
-        let eccentricity = self.get_eccentricity();
+        let eccentricity = self.eccentricity;
         let mut eccentric_anomaly = {
             if eccentricity > 0.8 { std::f64::consts::PI }
             else { eccentricity }
@@ -110,12 +122,38 @@ impl OrbitTrait for CompactOrbit {
         for _ in 0..MAX_ITERATIONS {
             // NEWTON'S METHOD
             // x_n+1 = x_n - f(x_n)/f'(x_n)
-
+    
             let next_value = 
                 eccentric_anomaly - 
                 (
                     keplers_equation(mean_anomaly, eccentric_anomaly, eccentricity) /
                     keplers_equation_derivative(eccentric_anomaly, eccentricity)
+                );
+    
+            let diff = (eccentric_anomaly - next_value).abs();
+            eccentric_anomaly = next_value;
+    
+            if diff < target_accuracy {
+                break;
+            }
+        }
+    
+        return eccentric_anomaly;
+    }
+
+    fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
+        let target_accuracy = 1e-9;
+        let max_iterations = 1000;
+        let mut eccentric_anomaly = mean_anomaly;
+        
+        for _ in 0..max_iterations {
+            // NEWTON'S METHOD
+            // x_n+1 = x_n - f(x_n)/f'(x_n)
+
+            let next_value =
+                eccentric_anomaly - (
+                    keplers_equation_hyperbolic(mean_anomaly, eccentric_anomaly, self.eccentricity) /
+                    keplers_equation_hyperbolic_derivative(eccentric_anomaly, self.eccentricity)
                 );
 
             let diff = (eccentric_anomaly - next_value).abs();
@@ -128,13 +166,24 @@ impl OrbitTrait for CompactOrbit {
 
         return eccentric_anomaly;
     }
+}
+
+impl OrbitTrait for CompactOrbit {
+    /// Numerically approaches the eccentric anomaly using Newton's method. Not performant; cache the result if you can!
+    fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
+        if self.eccentricity < 1.0 {
+            return self.get_eccentric_anomaly_elliptic(mean_anomaly);
+        } else {
+            return self.get_eccentric_anomaly_hyperbolic(mean_anomaly);
+        }
+    }
 
     /// Gets the true anomaly from the mean anomaly. Not performant; cache the result if you can!
     fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
-        let eccentric_anomaly = self.get_eccentric_anomaly(mean_anomaly);
+        let eccentric_anomaly = self.get_eccentric_anomaly_elliptic(mean_anomaly);
 
         // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
-        let eccentricity = self.get_eccentricity();
+        let eccentricity = self.eccentricity;
         let beta = eccentricity / (1.0 + (1.0 - eccentricity * eccentricity).sqrt());
 
         return eccentric_anomaly + 2.0 * (beta * eccentric_anomaly.sin() / (1.0 - beta * eccentric_anomaly.cos())).atan();
@@ -153,7 +202,7 @@ impl OrbitTrait for CompactOrbit {
     /// Gets the 2D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
     fn get_flat_position_at_angle(&self, true_anomaly: f64) -> (f64, f64) {
         return (
-            self.get_semi_major_axis() * (true_anomaly.cos() - self.get_eccentricity()),
+            self.get_semi_major_axis() * (true_anomaly.cos() - self.eccentricity),
             self.get_semi_minor_axis() * true_anomaly.sin()
         );
     }
@@ -172,7 +221,7 @@ impl OrbitTrait for CompactOrbit {
 
     /// Gets the eccentric anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
     fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
-        return self.get_eccentric_anomaly(self.get_mean_anomaly_at_time(t));
+        return self.get_eccentric_anomaly_elliptic(self.get_mean_anomaly_at_time(t));
     }
 
     /// Gets the true anomaly at a certain time. t ranges form 0 to 1; anything out of range will wrap around.
@@ -196,7 +245,7 @@ impl OrbitTrait for CompactOrbit {
 impl From<Orbit> for CompactOrbit {
     fn from(cached: Orbit) -> Self {
         return Self {
-            apoapsis: cached.get_apoapsis(),
+            eccentricity: cached.get_eccentricity(),
             periapsis: cached.get_periapsis(),
             inclination: cached.get_inclination(),
             arg_pe: cached.get_arg_pe(),
@@ -212,11 +261,4 @@ impl Orbit {
     pub fn compactify(self) -> CompactOrbit {
         CompactOrbit::from(self)
     }
-}
-
-fn keplers_equation(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return eccentric_anomaly - (eccentricity * eccentric_anomaly.sin()) - mean_anomaly;
-}
-fn keplers_equation_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return 1.0 - (eccentricity * eccentric_anomaly.cos());
 }
