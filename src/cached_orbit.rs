@@ -82,6 +82,15 @@ impl Orbit {
         };
     }
 
+    pub fn with_apoapsis(
+        apoapsis: f64, periapsis: f64,
+        inclination: f64, arg_pe: f64, long_asc_node: f64,
+        mean_anomaly: f64
+    ) -> Orbit {
+        let eccentricity = (apoapsis - periapsis) / (apoapsis + periapsis);
+        return Self::new(eccentricity, periapsis, inclination, arg_pe, long_asc_node, mean_anomaly);
+    }
+
     pub fn new_default() -> Orbit {
         return Self::new(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     }

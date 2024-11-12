@@ -25,13 +25,6 @@ fn vec3_len(v: Vec3) -> f64 {
     ).sqrt();
 }
 
-fn vec2_len(v: Vec2) -> f64 {
-    return (
-        v.0 * v.0 +
-        v.1 * v.1
-    ).sqrt();
-}
-
 fn assert_almost_eq_vec3(a: Vec3, b: Vec3) {
     assert_almost_eq(a.0, b.0, "X coord");
     assert_almost_eq(a.1, b.1, "Y coord");
@@ -74,16 +67,20 @@ fn poll_orbit(orbit: &impl OrbitTrait) -> Vec<Vec3> {
     return vec;
 }
 
+fn unit_orbit() -> Orbit {
+    return Orbit::new(
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    );
+}
+
 #[test]
 fn unit_orbit_angle_3d() {
-    let orbit = Orbit::new(
-        1.0,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-    );
+    let orbit = unit_orbit();
 
     assert_orbit_positions_3d(&orbit, &[
         (0.0 * PI, (1.0, 0.0, 0.0)),
@@ -96,14 +93,7 @@ fn unit_orbit_angle_3d() {
 
 #[test]
 fn unit_orbit_angle_2d() {
-    let orbit = Orbit::new(
-        1.0,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-    );
+    let orbit = unit_orbit();
 
     assert_orbit_positions_2d(&orbit, &[
         (0.0 * PI, (1.0, 0.0)),
@@ -118,14 +108,7 @@ fn unit_orbit_angle_2d() {
 fn unit_orbit_transformation() {
     // Test how the inclination and LAN tilts points in the orbit.
     // Since inclination is zero, it should not do anything.
-    let orbit = Orbit::new(
-        1.0,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-    );
+    let orbit = unit_orbit();
 
     let tests = [
         (1.0, 1.0),
@@ -146,7 +129,7 @@ fn unit_orbit_transformation() {
 #[test]
 fn tilted_equidistant() {
     let orbit = Orbit::new(
-        1.0,
+        0.0,
         1.0,
         2.848915582093,
         1.9520945821,

@@ -6,13 +6,7 @@
 // I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
 
 use crate::{
-    Matrix3x2,
-    Orbit,
-    OrbitTrait,
-    keplers_equation,
-    keplers_equation_derivative,
-    keplers_equation_hyperbolic,
-    keplers_equation_hyperbolic_derivative
+    keplers_equation, keplers_equation_derivative, keplers_equation_hyperbolic, keplers_equation_hyperbolic_derivative, ApoapsisSetterError, Matrix3x2, Orbit, OrbitTrait
 };
 
 /// A struct representing a Keplerian orbit.  
@@ -57,6 +51,15 @@ impl CompactOrbit {
         };
     }
 
+    pub fn with_apoapsis(
+        apoapsis: f64, periapsis: f64,
+        inclination: f64, arg_pe: f64, long_asc_node: f64,
+        mean_anomaly: f64
+    ) -> CompactOrbit {
+        let eccentricity = (apoapsis - periapsis ) / (apoapsis + periapsis);
+        return CompactOrbit::new(eccentricity, periapsis, inclination, arg_pe, long_asc_node, mean_anomaly);
+    }
+
     pub fn new_default() -> CompactOrbit {
         return Self::new(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     }
@@ -82,8 +85,51 @@ impl CompactOrbit {
         return self.get_semi_major_axis() - self.periapsis;
     }
     
+    /// Gets the apoapsis of the orbit.  
+    /// Returns infinity for parabolic orbits.  
+    /// Returns negative values for hyperbolic orbits.  
     pub fn get_apoapsis(&self) -> f64 {
-        todo!(); // TODO
+        if self.eccentricity == 1.0 {
+            return f64::INFINITY;
+        } else {
+            return self.get_semi_major_axis() * (1.0 + self.eccentricity);
+        }
+    }
+
+    /// Sets the apoapsis of the orbit.  
+    /// Errors when the apoapsis is less than the periapsis, or less than zero.  
+    /// If you want a setter that does not error, use `set_apoapsis_force`, which will
+    /// try its best to interpret what you might have meant, but may have
+    /// undesirable behavior.
+    pub fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError> {
+        if apoapsis < 0.0 {
+            return Err(ApoapsisSetterError::ApoapsisNegative);
+        } else if apoapsis < self.periapsis {
+            return Err(ApoapsisSetterError::ApoapsisLessThanPeriapsis);
+        }
+
+        self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
+
+        return Ok(());
+    }
+
+    /// Sets the apoapsis of the orbit, with a best-effort attempt at interpreting
+    /// possibly-invalid values.  
+    /// This function will not error, but may have undesirable behavior:
+    /// - If the given apoapsis is less than the periapsis but more than zero,
+    ///   the orbit will be flipped and the periapsis will be set to the given apoapsis.
+    /// - If the given apoapsis is less than zero, the orbit will be hyperbolic
+    ///   instead.
+    /// 
+    /// If these behaviors are undesirable, consider creating a custom wrapper around
+    /// `set_eccentricity` instead.
+    pub fn set_apoapsis_force(&mut self, apoapsis: f64) {
+        let mut apoapsis = apoapsis;
+        if apoapsis < self.periapsis && apoapsis > 0.0 {
+            (apoapsis, self.periapsis) = (self.periapsis, apoapsis);
+        }
+
+        self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
     }
 }
 
