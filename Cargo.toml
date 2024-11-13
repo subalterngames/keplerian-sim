@@ -2,3 +2,18 @@
 name = "keplerian_rust"
 version = "0.1.0"
 edition = "2021"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "eccentric_anomaly"
+harness = false
+
+[[bench]]
+name = "true_anomaly"
+harness = false
+
+[[bench]]
+name = "tilting"
+harness = false
