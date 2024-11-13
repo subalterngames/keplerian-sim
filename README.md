@@ -11,6 +11,9 @@ This project is a library crate, so you can't really 'run' that, but you can run
 3. Check out the available example binaries: `cargo run --example`
 4. Run the example binary: `cargo run --example <binary_name>`
 
+For the examples that dump a CSV, you can use external tools to chart it.  
+One example is https://csvplot.com/.
+
 ## Resources
 I did not come up with the algorithms myself. Here are useful resources for converting Keplerian orbital parameters into Cartesian coordinates:  
 - [Wikipedia: Keplerian elements](https://en.wikipedia.org/wiki/Orbital_elements)
