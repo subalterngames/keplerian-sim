@@ -56,7 +56,9 @@ impl Body {
             .ok_or("Body is not in orbit")?;
         let delta_progress = dt / period;
         self.progress += delta_progress;
-        self.progress = self.progress.rem_euclid(1.0);
+        if self.orbit.as_ref().unwrap().get_eccentricity() < 1.0 {
+            self.progress = self.progress.rem_euclid(1.0);
+        }
 
         return Ok(());
     }
