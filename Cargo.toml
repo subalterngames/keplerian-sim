@@ -17,3 +17,11 @@ harness = false
 [[bench]]
 name = "tilting"
 harness = false
+
+[[bench]]
+name = "position"
+harness = false
+
+[[bench]]
+name = "position_time"
+harness = false

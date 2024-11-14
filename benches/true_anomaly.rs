@@ -36,6 +36,26 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("true poll compact", |b| b.iter(||
         poll_true_compact(black_box(&compact))
     ));
+
+    // hyperbolic
+    let orbit = Orbit::new(
+        2.4,
+        1.0,
+        0.98,
+        3.01,
+        1.01,
+        2.55
+    );
+
+    c.bench_function("true poll hyp cached", |b| b.iter(||
+        poll_true_cached(black_box(&orbit))
+    ));
+
+    let compact: CompactOrbit = orbit.into();
+
+    c.bench_function("true poll hyp compact", |b| b.iter(||
+        poll_true_compact(black_box(&compact))
+    ));
 }
 
 criterion_group!(benches, criterion_benchmark);
