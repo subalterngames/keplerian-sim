@@ -2,7 +2,7 @@ use keplerian_rust::{
     Universe, body_presets
 };
 
-const SIMULATION_TICKS: u128 = 1_000_000;
+const SIMULATION_TICKS: u128 = 10_000_000;
 fn main() {
     let mut universe = generate_solar_system();
     describe_universe(&universe);
@@ -32,6 +32,48 @@ fn generate_solar_system<'a>() -> Universe {
 
     let mars = body_presets::planets::mars(true);
     universe.add_body(mars, Some(sun_idx));
+
+    let ceres = body_presets::dwarf_planets::ceres(true);
+    universe.add_body(ceres, Some(sun_idx));
+
+    let jupiter = body_presets::planets::jupiter(true);
+    universe.add_body(jupiter, Some(sun_idx));
+
+    let saturn = body_presets::planets::saturn(true);
+    universe.add_body(saturn, Some(sun_idx));
+
+    let uranus = body_presets::planets::uranus(true);
+    universe.add_body(uranus, Some(sun_idx));
+
+    let neptune = body_presets::planets::neptune(true);
+    universe.add_body(neptune, Some(sun_idx));
+
+    let pluto = body_presets::dwarf_planets::pluto(true);
+    let pluto_idx = universe.add_body(pluto, Some(sun_idx));
+
+    let makemake = body_presets::dwarf_planets::makemake(true);
+    universe.add_body(makemake, Some(sun_idx));
+
+    let eris = body_presets::dwarf_planets::eris(true);
+    let eris_idx = universe.add_body(eris, Some(sun_idx));
+
+    let sedna = body_presets::dwarf_planets::sedna(true);
+    universe.add_body(sedna, Some(sun_idx));
+
+    let haumea = body_presets::dwarf_planets::haumea(true);
+    universe.add_body(haumea, Some(sun_idx));
+
+    let quaoar = body_presets::dwarf_planets::quaoar(true);
+    let quaoar_idx = universe.add_body(quaoar, Some(sun_idx));
+
+    let weywot = body_presets::moons::weywot(true);
+    universe.add_body(weywot, Some(quaoar_idx));
+
+    let charon = body_presets::moons::charon(true);
+    universe.add_body(charon, Some(pluto_idx));
+
+    let dysnomia = body_presets::moons::dysnomia(true);
+    universe.add_body(dysnomia, Some(eris_idx));
 
     return universe;
 }
