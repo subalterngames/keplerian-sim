@@ -47,16 +47,26 @@ impl Body {
         let orbit = self.orbit.as_ref()?;
         let mu = g * self.mass;
 
+        if orbit.get_eccentricity() >= 1.0 {
+            return Some(std::f64::INFINITY);
+        }
+
         let semi_major_axis = orbit.get_semi_major_axis();
 
         return Some(TAU * (semi_major_axis / mu).sqrt());
     }
     pub fn progress_orbit(&mut self, dt: f64, g: f64) -> Result<(), String> {
-        let period = self.get_orbital_period(g)
+        let orbit = self.orbit
+            .as_ref()
             .ok_or("Body is not in orbit")?;
-        let delta_progress = dt / period;
-        self.progress += delta_progress;
-        if self.orbit.as_ref().unwrap().get_eccentricity() < 1.0 {
+
+        if orbit.get_eccentricity() >= 1.0 {
+            // FIXME: This is probably not the right equation
+            self.progress += dt * g;
+        } else {
+            let period = self.get_orbital_period(g)
+                .unwrap();
+            self.progress += dt / period;
             self.progress = self.progress.rem_euclid(1.0);
         }
 
