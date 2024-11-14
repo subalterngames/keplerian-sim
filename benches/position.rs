@@ -33,6 +33,25 @@ fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("pos poll compact", |b| b.iter(||
         poll_pos(black_box(&compact))
     ));
+
+    let orbit = Orbit::new(
+        2.0,
+        1.47098450e11,
+        0.00005_f64.to_radians(),
+        114.20783_f64.to_radians(),
+        -11.26064_f64.to_radians(),
+        358.617_f64.to_radians()
+    );
+
+    c.bench_function("pos poll hyp cached", |b| b.iter(||
+        poll_pos(black_box(&orbit))
+    ));
+
+    let compact: CompactOrbit = orbit.into();
+
+    c.bench_function("pos poll hyp compact", |b| b.iter(||
+        poll_pos(black_box(&compact))
+    ));
 }
 
 criterion_group!(benches, criterion_benchmark);
