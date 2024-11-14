@@ -1,3 +1,44 @@
+//! # Keplerian Orbital Mechanics
+//! This library crate contains logic for Keplerian orbits, similar to the ones
+//! you'd find in a game like Kerbal Space Program.  
+//! 
+//! Keplerian orbits are special in that they are more stable and predictable than
+//! Newtonian orbits. In fact, unlike Newtonian orbits, Keplerian orbits don't use
+//! time steps to calculate the next position of an object. Keplerian orbits use
+//! state vectors to determine the object's *full trajectory* at any given time.  
+//! This way, you don't need to worry about lag destabilizing Keplerian orbits.  
+//! 
+//! However, Keplerian orbits are significantly more complex to calculate than
+//! just using Newtonian physics. It's also a two-body simulation, meaning that
+//! it doesn't account for external forces like gravity from other bodies or the
+//! engines of a spacecraft.
+//! 
+//! The way Kerbal Space Program handles this is to have an "on-rails" physics
+//! system utilizing Keplerian orbits, and an "active" physics system utilizing
+//! Newtonian two-body physics.
+//! 
+//! ## Getting started
+//! This crate provides four main structs:
+//! - `Orbit`: A struct representing an orbit around a celestial body.
+//!   Each instance of this struct has some cached data to speed up
+//!   certain calculations, and has a larger memory footprint.
+//! - `CompactOrbit`: A struct representing an orbit around a celestial body.
+//!   This struct has a smaller memory footprint than the regular `Orbit` struct,
+//!   but some calculations may take 2~10x slower because it doesn't save any
+//!   cached calculations.
+//! - `Body`: A struct representing a celestial body. This struct contains
+//!   information about the body's mass, radius, and orbit.
+//! - `Universe`: A struct representing the entire simulation. This struct
+//!   contains a list of all the bodies in the simulation, and can calculate
+//!   the absolute position of any body at any given time.
+//!   To do this, it stores parent-child relationships between bodies.
+//! 
+//! We also provide a `body_presets` module, which contains some preset celestial
+//! bodies to use in your simulation. It contains many celestial bodies, like
+//! the Sun, the Moon, and all the planets in the Solar System.
+
+#![warn(missing_docs)]
+
 mod cached_orbit;
 mod compact_orbit;
 mod body;
@@ -9,6 +50,7 @@ pub use compact_orbit::CompactOrbit;
 pub use body::Body;
 pub use universe::Universe;
 
+/// A struct representing a 3x2 matrix.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Matrix3x2<T> {
     // Element XY

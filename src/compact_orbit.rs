@@ -47,6 +47,8 @@ pub struct CompactOrbit {
 
 // Initialization and cache management
 impl CompactOrbit {
+    /// Create a new CompactOrbit instance.
+    /// 
     pub fn new(
         eccentricity: f64, periapsis: f64,
         inclination: f64, arg_pe: f64, long_asc_node: f64,
