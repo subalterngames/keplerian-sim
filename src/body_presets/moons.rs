@@ -1,3 +1,12 @@
+//! This module contains presets for common moons, also known as
+//! natural satellites.
+//! 
+//! A natural satellite is, in the most common usage, an astronomical body
+//! that orbits a planet, dwarf planet, or small Solar System body
+//! (or sometimes another natural satellite).
+//! 
+//! \- Wikipedia
+
 use crate::{Body, Orbit};
 
 /// Returns the Moon, the only natural satellite of Earth.

@@ -1,3 +1,11 @@
+//! This module contains presets for dwarf planets.
+//! 
+//! A dwarf planet is a small planetary-mass object that is in
+//! direct orbit around the Sun, massive enough to be gravitationally rounded,
+//! but insufficient to achieve orbital dominance like the eight
+//! classical planets of the Solar System.
+//! \- Wikipedia
+
 use crate::{Body, Orbit};
 
 /// Returns 1 Ceres, a dwarf planet in the asteroid belt.  

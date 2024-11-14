@@ -21,6 +21,18 @@ pub struct Body {
 }
 
 impl Body {
+    /// Creates a new `Body` instance.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `name` - The name of the celestial body.
+    /// * `mass` - The mass of the celestial body, in kilograms.
+    /// * `radius` - The radius of the celestial body, in meters.
+    /// * `orbit` - An optional orbit for the celestial body.
+    /// 
+    /// # Returns
+    /// 
+    /// A new `Body` instance.
     pub fn new(
         name: String, mass: f64, radius: f64,
         orbit: Option<Orbit>
@@ -30,6 +42,11 @@ impl Body {
             progress: 0.0
         };
     }
+
+    /// Creates a default `Body` instance.
+    /// 
+    /// Currently, this function returns the Earth.  
+    /// However, do not rely on this behavior, as it may change in the future.
     pub fn new_default() -> Body {
         return Body {
             name: "Earth".to_string(),
@@ -39,10 +56,15 @@ impl Body {
             progress: 0.0,
         };
     }
+
+    /// Releases the body from its orbit.
     pub fn release_from_orbit(&mut self) {
         self.orbit = None;
         self.progress = 0.0;
     }
+
+    /// Get the amount of time it takes for the body to complete one orbit,
+    /// given a gravitational constant.
     pub fn get_orbital_period(&self, g: f64) -> Option<f64> {
         let orbit = self.orbit.as_ref()?;
         let mu = g * self.mass;

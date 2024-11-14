@@ -1,3 +1,14 @@
+//! This module contains presets for common celestial bodies.
+//! 
+//! A planet is a celestial body that  
+//! (a) is in orbit around the Sun,  
+//! (b) has sufficient mass for its self-gravity to overcome
+//!     rigid body forces so that it assumes a hydrostatic
+//!     equilibrium (nearly round) shape, and  
+//! (c) has cleared the neighbourhood around its orbit.
+//! 
+//! \- International Astronomical Union
+
 use crate::{Body, Orbit};
 
 /// Returns Mercury, the closest planet to the Sun.

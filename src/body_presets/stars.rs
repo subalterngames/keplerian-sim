@@ -1,3 +1,8 @@
+//! This module contains presets for stars.
+//! 
+//! "A star is a luminous spheroid of plasma held together by self-gravity."  
+//! \- Wikipedia
+
 use crate::{Body, Orbit};
 
 /// Returns the Sun.
