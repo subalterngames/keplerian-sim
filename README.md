@@ -7,9 +7,8 @@ You'll need Cargo and Rust to run the example binary. You can get it [at rustup.
 ## Running
 This project is a library crate, so you can't really 'run' that, but you can run the example binary.  
 1. Clone the repo: `git clone https://github.com/Not-A-Normal-Robot/keplerian-rust`
-2. Install the dependencies for [`plotters`](https://crates.io/crates/plotters#dependencies), if any
-3. Check out the available example binaries: `cargo run --example`
-4. Run the example binary: `cargo run --example <binary_name>`
+2. Check out the available example binaries: `cargo run --example`
+3. Run the example binary: `cargo run --example <binary_name>`
 
 For the examples that dump a CSV, you can use external tools to chart it.  
 One example is https://csvplot.com/.
