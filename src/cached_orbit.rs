@@ -195,6 +195,57 @@ impl Orbit {
         return eccentric_anomaly;
     }
 
+    #[doc(hidden)]
+    #[cfg(debug_assertions)]
+    pub fn get_eccentric_anomaly_elliptic_debug(&self, mean_anomaly: f64) -> (f64, u32) {
+        let target_accuracy = 1e-9;
+        let max_iterations: u32 = 1000;
+        let mut iterations: u32 = 0;
+
+        // Starting guess
+        let mut eccentric_anomaly =
+            if self.eccentricity > 0.8 { std::f64::consts::PI }
+            else { self.eccentricity };
+        
+        for _ in 0..max_iterations {
+            // NEWTON'S METHOD
+            // x_n+1 = x_n - f(x_n)/f'(x_n)
+
+            let next_value = 
+                eccentric_anomaly - 
+                (
+                    keplers_equation(mean_anomaly, eccentric_anomaly, self.eccentricity) /
+                    keplers_equation_derivative(eccentric_anomaly, self.eccentricity)
+                );
+
+            let diff = (eccentric_anomaly - next_value).abs();
+            eccentric_anomaly = next_value;
+
+            iterations += 1;
+
+            if diff < target_accuracy {
+                break;
+            }
+        }
+
+        assert_eq!(
+            eccentric_anomaly.to_bits(),
+            self.get_eccentric_anomaly_elliptic(mean_anomaly).to_bits(),
+            "Desync between debug and regular versions of get_eccentric_anomaly_elliptic!"
+        );
+
+        if iterations == max_iterations {
+            eprintln!(
+                "Warning: get_eccentric_anomaly_elliptic_debug failed to converge after {iterations} iterations\n\
+                With params:\n\
+                mean_anomaly: {mean_anomaly}\n\
+                eccentricity: {}", self.eccentricity,
+            );
+        }
+
+        return (eccentric_anomaly, iterations);
+    }
+
     fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
         let max_iterations = 1000;
