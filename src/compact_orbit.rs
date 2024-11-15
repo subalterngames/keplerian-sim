@@ -111,106 +111,7 @@ impl CompactOrbit {
     }
 }
 
-// The actual orbit position calculations
 impl CompactOrbit {
-    /// Gets the semi-major axis of the orbit.
-    /// 
-    /// In an elliptic orbit, the semi-major axis is the
-    /// average of the apoapsis and periapsis.  
-    /// This function uses a generalization which uses
-    /// eccentricity instead.
-    /// 
-    /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
-    pub fn get_semi_major_axis(&self) -> f64 {
-        return self.periapsis / (1.0 - self.eccentricity);
-    }
-    
-    /// Gets the semi-minor axis of the orbit.
-    /// 
-    /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
-    pub fn get_semi_minor_axis(&self) -> f64 {
-        let semi_major_axis = self.get_semi_major_axis();
-        let eccentricity_squared = self.eccentricity * self.eccentricity;
-        return semi_major_axis * (1.0 - eccentricity_squared).abs().sqrt();
-    }
-    
-    /// Gets the linear eccentricity of the orbit, in meters.
-    /// 
-    /// In an elliptic orbit, the linear eccentricity is the distance
-    /// between its center and either of its two foci (focuses).
-    pub fn get_linear_eccentricity(&self) -> f64 {
-        return self.get_semi_major_axis() - self.periapsis;
-    }
-    
-    /// Gets the apoapsis of the orbit.  
-    /// Returns infinity for parabolic orbits.  
-    /// Returns negative values for hyperbolic orbits.  
-    pub fn get_apoapsis(&self) -> f64 {
-        if self.eccentricity == 1.0 {
-            return f64::INFINITY;
-        } else {
-            return self.get_semi_major_axis() * (1.0 + self.eccentricity);
-        }
-    }
-
-    /// Sets the apoapsis of the orbit.  
-    /// Errors when the apoapsis is less than the periapsis, or less than zero.  
-    /// If you want a setter that does not error, use `set_apoapsis_force`, which will
-    /// try its best to interpret what you might have meant, but may have
-    /// undesirable behavior.
-    pub fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError> {
-        if apoapsis < 0.0 {
-            return Err(ApoapsisSetterError::ApoapsisNegative);
-        } else if apoapsis < self.periapsis {
-            return Err(ApoapsisSetterError::ApoapsisLessThanPeriapsis);
-        }
-
-        self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
-
-        return Ok(());
-    }
-
-    /// Sets the apoapsis of the orbit, with a best-effort attempt at interpreting
-    /// possibly-invalid values.  
-    /// This function will not error, but may have undesirable behavior:
-    /// - If the given apoapsis is less than the periapsis but more than zero,
-    ///   the orbit will be flipped and the periapsis will be set to the given apoapsis.
-    /// - If the given apoapsis is less than zero, the orbit will be hyperbolic
-    ///   instead.
-    /// 
-    /// If these behaviors are undesirable, consider creating a custom wrapper around
-    /// `set_eccentricity` instead.
-    pub fn set_apoapsis_force(&mut self, apoapsis: f64) {
-        let mut apoapsis = apoapsis;
-        if apoapsis < self.periapsis && apoapsis > 0.0 {
-            (apoapsis, self.periapsis) = (self.periapsis, apoapsis);
-        }
-
-        self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
-    }
-}
-
-impl CompactOrbit {
-    fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
-        let mut matrix = Matrix3x2::<f64>::filled_with(0.0);
-        {
-            let (sin_inc, cos_inc) = self.inclination.sin_cos();
-            let (sin_arg_pe, cos_arg_pe) = self.arg_pe.sin_cos();
-            let (sin_lan, cos_lan) = self.long_asc_node.sin_cos();
-    
-            // https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
-            matrix.e11 = cos_arg_pe * cos_lan - sin_arg_pe * cos_inc * sin_lan;
-            matrix.e12 = -(sin_arg_pe * cos_lan + cos_arg_pe * cos_inc * sin_lan);
-            
-            matrix.e21 = cos_arg_pe * sin_lan + sin_arg_pe * cos_inc * cos_lan;
-            matrix.e22 = cos_arg_pe * cos_inc * cos_lan - sin_arg_pe * sin_lan;
-    
-            matrix.e31 = sin_arg_pe * sin_inc;
-            matrix.e32 = cos_arg_pe * sin_inc;
-        }
-        return matrix;
-    }
-
     fn get_eccentric_anomaly_elliptic(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
         const MAX_ITERATIONS: u16 = 1000;
@@ -282,6 +183,69 @@ impl CompactOrbit {
 }
 
 impl OrbitTrait for CompactOrbit {
+    fn get_semi_major_axis(&self) -> f64 {
+        return self.periapsis / (1.0 - self.eccentricity);
+    }
+    
+    fn get_semi_minor_axis(&self) -> f64 {
+        let semi_major_axis = self.get_semi_major_axis();
+        let eccentricity_squared = self.eccentricity * self.eccentricity;
+        return semi_major_axis * (1.0 - eccentricity_squared).abs().sqrt();
+    }
+    
+    fn get_linear_eccentricity(&self) -> f64 {
+        return self.get_semi_major_axis() - self.periapsis;
+    }
+    
+    fn get_apoapsis(&self) -> f64 {
+        if self.eccentricity == 1.0 {
+            return f64::INFINITY;
+        } else {
+            return self.get_semi_major_axis() * (1.0 + self.eccentricity);
+        }
+    }
+
+    fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError> {
+        if apoapsis < 0.0 {
+            return Err(ApoapsisSetterError::ApoapsisNegative);
+        } else if apoapsis < self.periapsis {
+            return Err(ApoapsisSetterError::ApoapsisLessThanPeriapsis);
+        }
+
+        self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
+
+        return Ok(());
+    }
+
+    fn set_apoapsis_force(&mut self, apoapsis: f64) {
+        let mut apoapsis = apoapsis;
+        if apoapsis < self.periapsis && apoapsis > 0.0 {
+            (apoapsis, self.periapsis) = (self.periapsis, apoapsis);
+        }
+
+        self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
+    }
+
+    fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
+        let mut matrix = Matrix3x2::<f64>::filled_with(0.0);
+        {
+            let (sin_inc, cos_inc) = self.inclination.sin_cos();
+            let (sin_arg_pe, cos_arg_pe) = self.arg_pe.sin_cos();
+            let (sin_lan, cos_lan) = self.long_asc_node.sin_cos();
+    
+            // https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
+            matrix.e11 = cos_arg_pe * cos_lan - sin_arg_pe * cos_inc * sin_lan;
+            matrix.e12 = -(sin_arg_pe * cos_lan + cos_arg_pe * cos_inc * sin_lan);
+            
+            matrix.e21 = cos_arg_pe * sin_lan + sin_arg_pe * cos_inc * cos_lan;
+            matrix.e22 = cos_arg_pe * cos_inc * cos_lan - sin_arg_pe * sin_lan;
+    
+            matrix.e31 = sin_arg_pe * sin_inc;
+            matrix.e32 = cos_arg_pe * sin_inc;
+        }
+        return matrix;
+    }
+
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
         if self.eccentricity < 1.0 {
             return self.get_eccentric_anomaly_elliptic(mean_anomaly);
@@ -309,15 +273,6 @@ impl OrbitTrait for CompactOrbit {
         }
     }
 
-    fn tilt_flat_position(&self, x: f64, y: f64) -> (f64, f64, f64) {
-        let matrix = &self.get_transformation_matrix();
-        return (
-            x * matrix.e11 + y * matrix.e12,
-            x * matrix.e21 + y * matrix.e22,
-            x * matrix.e31 + y * matrix.e32
-        );
-    }
-
     fn get_flat_position_at_angle(&self, true_anomaly: f64) -> (f64, f64) {
         // Polar equation for conic section:
         // r = p / (1 + e*cos(theta))
@@ -340,34 +295,6 @@ impl OrbitTrait for CompactOrbit {
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
         let time = t.rem_euclid(1.0);
         return time * std::f64::consts::TAU + self.mean_anomaly;
-    }
-    
-    fn get_semi_major_axis(&self) -> f64 {
-        return self.get_semi_major_axis();
-    }
-    
-    fn get_semi_minor_axis(&self) -> f64 {
-        return self.get_semi_minor_axis();
-    }
-    
-    fn get_linear_eccentricity(&self) -> f64 {
-        return self.get_linear_eccentricity();
-    }
-    
-    fn get_apoapsis(&self) -> f64 {
-        return self.get_apoapsis();
-    }
-    
-    fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError> {
-        return self.set_apoapsis(apoapsis);
-    }
-    
-    fn set_apoapsis_force(&mut self, apoapsis: f64) {
-        return self.set_apoapsis_force(apoapsis);
-    }
-    
-    fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
-        return self.get_transformation_matrix();
     }
 }
 
