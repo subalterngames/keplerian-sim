@@ -227,20 +227,6 @@ pub trait OrbitTrait {
     fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3;
 }
 
-// TODO: Remove OrbitType it's very redundant
-/// This enum is a candidate for removal. don't use this
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub enum OrbitType {
-    /// Eccentricity is less than 1.  
-    /// Orbit is shaped mostly like an ellipse or circle.
-    Elliptic,
-
-    /// Eccentricity is more than or equal to 1.  
-    /// Orbit is shaped mostly like a parabola or hyperbola.  
-    /// The apoapsis does not exist.
-    Hyperbolic
-}
-
 /// An error to describe why setting the periapsis of an orbit failed.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum ApoapsisSetterError {

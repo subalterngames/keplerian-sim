@@ -1,16 +1,21 @@
-// Shoutouts to Scott Anderson for these! I barely know anything about orbital mechanics LOL
-// his repo on his implementation: https://github.com/ScottyRAnderson/Keplerian-Orbits
-// his yt vid about this: https://www.youtube.com/watch?v=t89De819YMA (highly underrated btw, check him out)
-
-// However his code is kinda incomplete and doesn't account for longitude of ascending node.
-// I found an algorithm to account for it: https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
+// Credits:
+//
+// Scott Anderson
+// https://github.com/ScottyRAnderson/Keplerian-Orbits
+// https://www.youtube.com/watch?v=t89De819YMA
+//
+// M.Eng. René Schwarz
+// https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
+//
+// Wikipedia and their editors
+// https://en.wikipedia.org/wiki/Orbital_elements#Keplerian
+// ..and many more pages
 
 use crate::{
     ApoapsisSetterError,
     CompactOrbit,
     Matrix3x2,
     OrbitTrait,
-    OrbitType,
     keplers_equation,
     keplers_equation_derivative,
     keplers_equation_hyperbolic,
@@ -62,8 +67,6 @@ struct OrbitCachedCalculations {
 
     /// The transformation matrix to tilt the 2D planar orbit into 3D space.
     transformation_matrix: Matrix3x2<f64>,
-    
-    orbit_type: OrbitType,
 }
 // Initialization and cache management
 impl Orbit {
@@ -142,17 +145,9 @@ impl Orbit {
         eccentricity: f64, periapsis: f64,
         inclination: f64, arg_pe: f64, long_asc_node: f64
     ) -> OrbitCachedCalculations {
-        let orbit_type = if eccentricity < 1.0 {
-            OrbitType::Elliptic
-        } else {
-            OrbitType::Hyperbolic
-        };
-
         let semi_major_axis = periapsis / (1.0 - eccentricity);
-        let semi_minor_axis = match orbit_type {
-            OrbitType::Elliptic => (semi_major_axis * (1.0 - eccentricity * eccentricity)).sqrt(),
-            OrbitType::Hyperbolic => (semi_major_axis * (eccentricity * eccentricity - 1.0)).sqrt(),
-        };
+        let semi_minor_axis =
+            semi_major_axis * (1.0 - eccentricity * eccentricity).abs().sqrt();
         let linear_eccentricity = semi_major_axis * eccentricity;
         let transformation_matrix = Self::get_transformation_matrix(inclination, arg_pe, long_asc_node);        
 
@@ -160,8 +155,7 @@ impl Orbit {
             semi_major_axis,
             semi_minor_axis,
             linear_eccentricity,
-            transformation_matrix,
-            orbit_type
+            transformation_matrix
         };
     }
 
@@ -256,9 +250,10 @@ impl Orbit {
 // The actual orbit position calculations
 impl OrbitTrait for Orbit {
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
-        match self.cache.orbit_type {
-            OrbitType::Elliptic => self.get_eccentric_anomaly_elliptic(mean_anomaly),
-            OrbitType::Hyperbolic => self.get_eccentric_anomaly_hyperbolic(mean_anomaly)
+        if self.eccentricity < 1.0 {
+            self.get_eccentric_anomaly_elliptic(mean_anomaly)
+        } else {
+            self.get_eccentric_anomaly_hyperbolic(mean_anomaly)
         }
     }
 
