@@ -70,6 +70,8 @@ pub use universe::Universe;
 /// 
 /// Namely, it is used in the [`tilt_flat_position`][OrbitTrait::tilt_flat_position]
 /// method to tilt a 2D position into 3D, using the orbital parameters.
+/// 
+/// Each element is named `eXY`, where `X` is the row and `Y` is the column.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Matrix3x2<T> {
     // Element XY
@@ -78,15 +80,31 @@ pub struct Matrix3x2<T> {
     e31: T, e32: T
 }
 
-impl Matrix3x2<f64> {
+impl<T: Copy> Copy for Matrix3x2<T> {}
+
+impl<T: Copy> Matrix3x2<T> {
     /// Create a new Matrix3x2 instance where each
     /// element is initialized with the same value.
-    fn filled_with<T: Copy>(element: T) -> Matrix3x2<T> {
+    pub fn filled_with(element: T) -> Matrix3x2<T> {
         return Matrix3x2 {
             e11: element, e12: element,
             e21: element, e22: element,
             e31: element, e32: element,
         };
+    }
+}
+
+impl<T> Matrix3x2<T>
+where
+    T: Copy + std::ops::Mul<Output = T> + std::ops::Add<Output = T>
+{
+    /// Computes a dot product between this matrix and a 2D vector.
+    pub fn dot_vec(&self, vec: (T, T)) -> (T, T, T) {
+        return (
+            vec.0 * self.e11 + vec.1 * self.e12,
+            vec.0 * self.e21 + vec.1 * self.e22,
+            vec.0 * self.e31 + vec.1 * self.e32
+        );
     }
 }
 
@@ -97,6 +115,57 @@ type Vec2 = (f64, f64);
 /// 
 /// This trait is implemented by both [`Orbit`] and [`CompactOrbit`].
 pub trait OrbitTrait {
+    /// Gets the semi-major axis of the orbit.
+    /// 
+    /// In an elliptic orbit, the semi-major axis is the
+    /// average of the apoapsis and periapsis.  
+    /// This function uses a generalization which uses
+    /// eccentricity instead.
+    /// 
+    /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
+    fn get_semi_major_axis(&self) -> f64;
+
+    /// Gets the semi-minor axis of the orbit.
+    /// 
+    /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
+    fn get_semi_minor_axis(&self) -> f64;
+
+    /// Gets the linear eccentricity of the orbit, in meters.
+    /// 
+    /// In an elliptic orbit, the linear eccentricity is the distance
+    /// between its center and either of its two foci (focuses).
+    fn get_linear_eccentricity(&self) -> f64;
+
+    /// Gets the apoapsis of the orbit.  
+    /// Returns infinity for parabolic orbits.  
+    /// Returns negative values for hyperbolic orbits.  
+    fn get_apoapsis(&self) -> f64;
+
+    /// Sets the apoapsis of the orbit.  
+    /// Errors when the apoapsis is less than the periapsis, or less than zero.  
+    /// If you want a setter that does not error, use `set_apoapsis_force`, which will
+    /// try its best to interpret what you might have meant, but may have
+    /// undesirable behavior.
+    fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError>;
+
+    /// Sets the apoapsis of the orbit, with a best-effort attempt at interpreting
+    /// possibly-invalid values.  
+    /// This function will not error, but may have undesirable behavior:
+    /// - If the given apoapsis is less than the periapsis but more than zero,
+    ///   the orbit will be flipped and the periapsis will be set to the given apoapsis.
+    /// - If the given apoapsis is less than zero, the orbit will be hyperbolic
+    ///   instead.
+    /// 
+    /// If these behaviors are undesirable, consider creating a custom wrapper around
+    /// `set_eccentricity` instead.
+    fn set_apoapsis_force(&mut self, apoapsis: f64);
+
+    /// Gets the transformation matrix needed to tilt a 2D vector into the
+    /// tilted orbital plane.
+    /// 
+    /// 
+    fn get_transformation_matrix(&self) -> Matrix3x2<f64>;
+
     /// Gets the eccentric anomaly at a given mean anomaly in the orbit.
     /// 
     /// The method to get the eccentric anomaly often uses numerical
@@ -150,7 +219,11 @@ pub trait OrbitTrait {
     /// of a body that is moving along an elliptic Kepler orbit.
     /// 
     /// \- [Wikipedia](https://en.wikipedia.org/wiki/Eccentric_anomaly)
-    fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64;
+    fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
+        self.get_eccentric_anomaly(
+            self.get_mean_anomaly_at_time(t)
+        )
+    }
 
     /// Gets the true anomaly at a given time in the orbit.
     /// 
@@ -163,13 +236,20 @@ pub trait OrbitTrait {
     /// of the ellipse.
     /// 
     /// \- [Wikipedia](https://en.wikipedia.org/wiki/True_anomaly)
-    fn get_true_anomaly_at_time(&self, t: f64) -> f64;
+    fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
+        self.get_true_anomaly(
+            self.get_mean_anomaly_at_time(t)
+        )
+    }
 
     /// Gets the 3D position at a given angle (true anomaly) in the orbit.
     /// 
     /// The angle is expressed in radians, and ranges from 0 to tau.  
     /// Anything out of range will get wrapped around.
-    fn get_position_at_angle(&self, angle: f64) -> Vec3;
+    fn get_position_at_angle(&self, angle: f64) -> Vec3 {
+        let (x, y) = self.get_flat_position_at_angle(angle);
+        self.tilt_flat_position(x, y)
+    }
 
     /// Gets the 2D position at a given angle (true anomaly) in the orbit.
     /// 
@@ -194,7 +274,11 @@ pub trait OrbitTrait {
     /// `t` (time) value is unbounded.  
     /// Note that due to floating-point imprecision, values of extreme
     /// magnitude may not be accurate.
-    fn get_position_at_time(&self, t: f64) -> Vec3;
+    fn get_position_at_time(&self, t: f64) -> Vec3 {
+        self.get_position_at_angle(
+            self.get_true_anomaly_at_time(t)
+        )
+    }
 
     /// Gets the 2D position at a given time in the orbit.
     /// 
@@ -213,7 +297,11 @@ pub trait OrbitTrait {
     /// `t` (time) value is unbounded.  
     /// Note that due to floating-point imprecision, values of extreme
     /// magnitude may not be accurate.
-    fn get_flat_position_at_time(&self, t: f64) -> Vec2;
+    fn get_flat_position_at_time(&self, t: f64) -> Vec2 {
+        self.get_flat_position_at_angle(
+            self.get_true_anomaly_at_time(t)
+        )
+    }
 
     /// Tilts a 2D position into 3D, using the orbital parameters.
     /// 
@@ -224,7 +312,9 @@ pub trait OrbitTrait {
     /// This function performs 10x faster in the cached version of the
     /// [`Orbit`] struct, as it doesn't need to recalculate the transformation
     /// matrix needed to transform 2D vector.
-    fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3;
+    fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3 {
+        self.get_transformation_matrix().dot_vec((x, y))
+    }
 }
 
 /// An error to describe why setting the periapsis of an orbit failed.

@@ -22,8 +22,6 @@ use crate::{
     keplers_equation_hyperbolic_derivative,
     keplers_equation_hyperbolic_second_derivative
 };
-type Vec3 = (f64, f64, f64);
-type Vec2 = (f64, f64);
 
 /// A struct representing a Keplerian orbit with some cached values.
 /// 
@@ -249,6 +247,34 @@ impl Orbit {
 
 // The actual orbit position calculations
 impl OrbitTrait for Orbit {
+    fn get_semi_major_axis(&self) -> f64 {
+        return self.cache.semi_major_axis;
+    }
+
+    fn get_semi_minor_axis(&self) -> f64 {
+        return self.cache.semi_minor_axis;
+    }
+
+    fn get_linear_eccentricity(&self) -> f64 {
+        return self.cache.linear_eccentricity;
+    }
+
+    fn get_apoapsis(&self) -> f64 {
+        return self.get_apoapsis();
+    }
+
+    fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
+        return self.cache.transformation_matrix;
+    }
+
+    fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError> {
+        return self.set_apoapsis(apoapsis);
+    }
+
+    fn set_apoapsis_force(&mut self, apoapsis: f64) {
+        return self.set_apoapsis_force(apoapsis);
+    }
+
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
         if self.eccentricity < 1.0 {
             self.get_eccentric_anomaly_elliptic(mean_anomaly)
@@ -276,16 +302,7 @@ impl OrbitTrait for Orbit {
         }
     }
 
-    fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3 {
-        let matrix = &self.cache.transformation_matrix;
-        return (
-            x * matrix.e11 + y * matrix.e12,
-            x * matrix.e21 + y * matrix.e22,
-            x * matrix.e31 + y * matrix.e32
-        );
-    }
-
-    fn get_flat_position_at_angle(&self, true_anomaly: f64) -> Vec2 {
+    fn get_flat_position_at_angle(&self, true_anomaly: f64) -> (f64, f64) {
         // Polar equation for conic section:
         // r = p / (1 + e*cos(theta))
         // ...where:
@@ -304,31 +321,8 @@ impl OrbitTrait for Orbit {
         );
     }
 
-    fn get_position_at_angle(&self, true_anomaly: f64) -> Vec3 {
-        let (x, y) = self.get_flat_position_at_angle(true_anomaly);
-        return self.tilt_flat_position(x, y);
-    }
-
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
         return t * std::f64::consts::TAU + self.mean_anomaly;
-    }
-
-    fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
-        return self.get_eccentric_anomaly(self.get_mean_anomaly_at_time(t));
-    }
-
-    fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
-        return self.get_true_anomaly(self.get_mean_anomaly_at_time(t));
-    }
-
-    fn get_flat_position_at_time(&self, t: f64) -> Vec2 {
-        let true_anomaly = self.get_true_anomaly_at_time(t);
-        return self.get_flat_position_at_angle(true_anomaly);
-    }
-
-    fn get_position_at_time(&self, t: f64) -> Vec3 {
-        let true_anomaly = self.get_true_anomaly_at_time(t);
-        return self.get_position_at_angle(true_anomaly);
     }
 }
 

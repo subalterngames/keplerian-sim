@@ -282,7 +282,6 @@ impl CompactOrbit {
 }
 
 impl OrbitTrait for CompactOrbit {
-    /// Numerically approaches the eccentric anomaly using Newton's method. Not performant; cache the result if you can!
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
         if self.eccentricity < 1.0 {
             return self.get_eccentric_anomaly_elliptic(mean_anomaly);
@@ -291,7 +290,6 @@ impl OrbitTrait for CompactOrbit {
         }
     }
 
-    /// Gets the true anomaly from the mean anomaly. Not performant; cache the result if you can!
     fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
         let eccentric_anomaly = self.get_eccentric_anomaly(mean_anomaly);
 
@@ -311,7 +309,6 @@ impl OrbitTrait for CompactOrbit {
         }
     }
 
-    /// Multiplies the input 2D vector with the 2x3 transformation matrix used to tilt the flat orbit into 3D space.
     fn tilt_flat_position(&self, x: f64, y: f64) -> (f64, f64, f64) {
         let matrix = &self.get_transformation_matrix();
         return (
@@ -321,7 +318,6 @@ impl OrbitTrait for CompactOrbit {
         );
     }
 
-    /// Gets the 2D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
     fn get_flat_position_at_angle(&self, true_anomaly: f64) -> (f64, f64) {
         // Polar equation for conic section:
         // r = p / (1 + e*cos(theta))
@@ -341,38 +337,37 @@ impl OrbitTrait for CompactOrbit {
         );
     }
 
-    /// Gets the 3D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
-    fn get_position_at_angle(&self, true_anomaly: f64) -> (f64, f64, f64) {
-        let (x, y) = self.get_flat_position_at_angle(true_anomaly);
-        return self.tilt_flat_position(x, y);
-    }
-
-    /// Gets the mean anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
         let time = t.rem_euclid(1.0);
         return time * std::f64::consts::TAU + self.mean_anomaly;
     }
-
-    /// Gets the eccentric anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
-        return self.get_eccentric_anomaly_elliptic(self.get_mean_anomaly_at_time(t));
+    
+    fn get_semi_major_axis(&self) -> f64 {
+        return self.get_semi_major_axis();
     }
-
-    /// Gets the true anomaly at a certain time. t ranges form 0 to 1; anything out of range will wrap around.
-    fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
-        return self.get_true_anomaly(self.get_mean_anomaly_at_time(t));
+    
+    fn get_semi_minor_axis(&self) -> f64 {
+        return self.get_semi_minor_axis();
     }
-
-    /// Gets the 2D position at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    fn get_flat_position_at_time(&self, t: f64) -> (f64, f64) {
-        let true_anomaly = self.get_true_anomaly_at_time(t);
-        return self.get_flat_position_at_angle(true_anomaly);
+    
+    fn get_linear_eccentricity(&self) -> f64 {
+        return self.get_linear_eccentricity();
     }
-
-    /// Gets the 3D position at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
-    fn get_position_at_time(&self, t: f64) -> (f64, f64, f64) {
-        let true_anomaly = self.get_true_anomaly_at_time(t);
-        return self.get_position_at_angle(true_anomaly);
+    
+    fn get_apoapsis(&self) -> f64 {
+        return self.get_apoapsis();
+    }
+    
+    fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError> {
+        return self.set_apoapsis(apoapsis);
+    }
+    
+    fn set_apoapsis_force(&mut self, apoapsis: f64) {
+        return self.set_apoapsis_force(apoapsis);
+    }
+    
+    fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
+        return self.get_transformation_matrix();
     }
 }
 
