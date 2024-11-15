@@ -1,11 +1,13 @@
 //! This module contains presets for stars.
 //! 
 //! "A star is a luminous spheroid of plasma held together by self-gravity."  
-//! \- Wikipedia
+//! 
+//! \- [Wikipedia](https://en.wikipedia.org/wiki/Star)
 
 use crate::{Body, Orbit};
 
 /// Returns the Sun.
+/// 
 /// `include_orbit`: Whether to include the orbit of the Sun around Sagittarius A*.
 pub fn the_sun(include_orbit: bool) -> Body {
     let orbit = if include_orbit {

@@ -64,6 +64,12 @@ pub use body::Body;
 pub use universe::Universe;
 
 /// A struct representing a 3x2 matrix.
+/// 
+/// This struct is used to store the transformation matrix
+/// for transforming a 2D vector into a 3D vector.
+/// 
+/// Namely, it is used in the [`tilt_flat_position`][OrbitTrait::tilt_flat_position]
+/// method to tilt a 2D position into 3D, using the orbital parameters.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Matrix3x2<T> {
     // Element XY
@@ -73,6 +79,8 @@ pub struct Matrix3x2<T> {
 }
 
 impl Matrix3x2<f64> {
+    /// Create a new Matrix3x2 instance where each
+    /// element is initialized with the same value.
     fn filled_with<T: Copy>(element: T) -> Matrix3x2<T> {
         return Matrix3x2 {
             e11: element, e12: element,
@@ -85,19 +93,142 @@ impl Matrix3x2<f64> {
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
 
+/// A trait that defines the methods that a Keplerian orbit must implement.
+/// 
+/// This trait is implemented by both [`Orbit`] and [`CompactOrbit`].
 pub trait OrbitTrait {
+    /// Gets the eccentric anomaly at a given mean anomaly in the orbit.
+    /// 
+    /// The method to get the eccentric anomaly often uses numerical
+    /// methods like Newton's method, and so it is not very performant.  
+    /// It is recommended to cache this value if you can.
+    /// 
+    /// When the orbit is open (has an eccentricity of at least 1),
+    /// the [hyperbolic eccentric anomaly](https://space.stackexchange.com/questions/27602/what-is-hyperbolic-eccentric-anomaly-f)
+    /// would be returned instead.
+    /// 
+    /// The eccentric anomaly is an angular parameter that defines the position
+    /// of a body that is moving along an elliptic Kepler orbit.
+    /// 
+    /// \- [Wikipedia](https://en.wikipedia.org/wiki/Eccentric_anomaly)
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64;
+
+    /// Gets the true anomaly at a given mean anomaly in the orbit.
+    /// 
+    /// The true anomaly is derived from the eccentric anomaly, which
+    /// uses numerical methods and so is not very performant.  
+    /// It is recommended to cache this value if you can.
+    /// 
+    /// The true anomaly is the angle between the direction of periapsis
+    /// and the current position of the body, as seen from the main focus
+    /// of the ellipse.
+    /// 
+    /// \- [Wikipedia](https://en.wikipedia.org/wiki/True_anomaly)
     fn get_true_anomaly(&self, mean_anomaly: f64) -> f64;
+
+    /// Gets the mean anomaly at a given time in the orbit.
+    /// 
+    /// The mean anomaly is the fraction of an elliptical orbit's period
+    /// that has elapsed since the orbiting body passed periapsis,
+    /// expressed as an angle which can be used in calculating the position
+    /// of that body in the classical two-body problem.
+    /// 
+    /// \- [Wikipedia](https://en.wikipedia.org/wiki/Mean_anomaly)
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64;
+
+    /// Gets the eccentric anomaly at a given time in the orbit.
+    /// 
+    /// The method to get the eccentric anomaly often uses numerical
+    /// methods like Newton's method, and so it is not very performant.  
+    /// It is recommended to cache this value if you can.
+    /// 
+    /// When the orbit is open (has an eccentricity of at least 1),
+    /// the [hyperbolic eccentric anomaly](https://space.stackexchange.com/questions/27602/what-is-hyperbolic-eccentric-anomaly-f)
+    /// would be returned instead.
+    /// 
+    /// The eccentric anomaly is an angular parameter that defines the position
+    /// of a body that is moving along an elliptic Kepler orbit.
+    /// 
+    /// \- [Wikipedia](https://en.wikipedia.org/wiki/Eccentric_anomaly)
     fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64;
+
+    /// Gets the true anomaly at a given time in the orbit.
+    /// 
+    /// The true anomaly is derived from the eccentric anomaly, which
+    /// uses numerical methods and so is not very performant.  
+    /// It is recommended to cache this value if you can.
+    /// 
+    /// The true anomaly is the angle between the direction of periapsis
+    /// and the current position of the body, as seen from the main focus
+    /// of the ellipse.
+    /// 
+    /// \- [Wikipedia](https://en.wikipedia.org/wiki/True_anomaly)
     fn get_true_anomaly_at_time(&self, t: f64) -> f64;
+
+    /// Gets the 3D position at a given angle (true anomaly) in the orbit.
+    /// 
+    /// The angle is expressed in radians, and ranges from 0 to tau.  
+    /// Anything out of range will get wrapped around.
     fn get_position_at_angle(&self, angle: f64) -> Vec3;
+
+    /// Gets the 2D position at a given angle (true anomaly) in the orbit.
+    /// 
+    /// This ignores "orbital tilting" parameters, namely the inclination and
+    /// the longitude of ascending node.
+    /// 
+    /// The angle is expressed in radians, and ranges from 0 to tau.  
+    /// Anything out of range will get wrapped around.
     fn get_flat_position_at_angle(&self, angle: f64) -> Vec2;
+
+    /// Gets the 3D position at a given time in the orbit.
+    /// 
+    /// This involves calculating the true anomaly at a given time,
+    /// and so is not very performant.  
+    /// It is recommended to cache this value when possible.
+    /// 
+    /// For closed orbits (with an eccentricity less than 1), the
+    /// `t` (time) value ranges from 0 to 1.  
+    /// Anything out of range will get wrapped around.
+    /// 
+    /// For open orbits (with an eccentricity of at least 1), the
+    /// `t` (time) value is unbounded.  
+    /// Note that due to floating-point imprecision, values of extreme
+    /// magnitude may not be accurate.
     fn get_position_at_time(&self, t: f64) -> Vec3;
+
+    /// Gets the 2D position at a given time in the orbit.
+    /// 
+    /// This involves calculating the true anomaly at a given time,
+    /// and so is not very performant.
+    /// It is recommended to cache this value when possible.
+    /// 
+    /// This ignores "orbital tilting" parameters, namely the inclination
+    /// and longitude of ascending node.
+    /// 
+    /// For closed orbits (with an eccentricity less than 1), the
+    /// `t` (time) value ranges from 0 to 1.  
+    /// Anything out of range will get wrapped around.
+    /// 
+    /// For open orbits (with an eccentricity of at least 1), the
+    /// `t` (time) value is unbounded.  
+    /// Note that due to floating-point imprecision, values of extreme
+    /// magnitude may not be accurate.
     fn get_flat_position_at_time(&self, t: f64) -> Vec2;
+
+    /// Tilts a 2D position into 3D, using the orbital parameters.
+    /// 
+    /// This uses the "orbital tilting" parameters, namely the inclination
+    /// and longitude of ascending node, to tilt that position into the same
+    /// plane that the orbit resides in.
+    /// 
+    /// This function performs 10x faster in the cached version of the
+    /// [`Orbit`] struct, as it doesn't need to recalculate the transformation
+    /// matrix needed to transform 2D vector.
     fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3;
 }
 
+// TODO: Remove OrbitType it's very redundant
+/// This enum is a candidate for removal. don't use this
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum OrbitType {
     /// Eccentricity is less than 1.  
@@ -110,6 +241,7 @@ pub enum OrbitType {
     Hyperbolic
 }
 
+/// An error to describe why setting the periapsis of an orbit failed.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum ApoapsisSetterError {
     /// ### Attempt to set apoapsis to a value less than periapsis.

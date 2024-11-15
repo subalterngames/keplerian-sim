@@ -77,6 +77,8 @@ impl Body {
 
         return Some(TAU * (semi_major_axis / mu).sqrt());
     }
+    /// Progresses this body's orbit, given a time step and the gravitational
+    /// acceleration towards the parent body.
     pub fn progress_orbit(&mut self, dt: f64, g: f64) -> Result<(), String> {
         let orbit = self.orbit
             .as_ref()
@@ -94,6 +96,13 @@ impl Body {
 
         return Ok(());
     }
+    /// Gets the relative position of this body, in meters.
+    /// 
+    /// The position is relative to the parent body, if there is one.  
+    /// If the body is not orbiting anything, this function will return
+    /// (0, 0, 0).
+    /// 
+    /// Each coordinate is in meters.
     pub fn get_relative_position(&self) -> (f64, f64, f64) {
         let orbit = self.orbit.as_ref();
 

@@ -1,14 +1,19 @@
 //! This module contains presets for dwarf planets.
 //! 
-//! A dwarf planet is a small planetary-mass object that is in
-//! direct orbit around the Sun, massive enough to be gravitationally rounded,
-//! but insufficient to achieve orbital dominance like the eight
-//! classical planets of the Solar System.
-//! \- Wikipedia
+//! A dwarf planet is a celestial body that:  
+//! (a) is in orbit around the Sun,  
+//! (b) has sufficient mass for its self-gravity to
+//!     overcome rigid body forces so that it assumes
+//!     a hydrostatic equilibrium (nearly round) shape,  
+//! (c) has not cleared the neighbourhood around its orbit, and  
+//! (d) is not a satellite. 
+//! 
+//! \- [International Astronomical Union](https://en.wikipedia.org/wiki/IAU_definition_of_planet#Final_definition)
 
 use crate::{Body, Orbit};
 
 /// Returns 1 Ceres, a dwarf planet in the asteroid belt.  
+/// 
 /// `include_orbit`: Whether to include the orbit of Ceres around the Sun.
 pub fn ceres(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -32,6 +37,7 @@ pub fn ceres(include_orbit: bool) -> Body {
 }
 
 /// Returns 50000 Quaoar, a dwarf planet in the Kuiper belt.
+/// 
 /// `include_orbit`: Whether to include the orbit of Quaoar around the Sun.
 pub fn quaoar(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -55,6 +61,7 @@ pub fn quaoar(include_orbit: bool) -> Body {
 }
 
 /// Returns 90377 Sedna, a dwarf planet, sednoid, and extreme trans-Neptunian object.
+/// 
 /// `include_orbit`: Whether to include the orbit of Sedna around the Sun.
 pub fn sedna(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -80,6 +87,7 @@ pub fn sedna(include_orbit: bool) -> Body {
 }
 
 /// Returns 134340 Pluto, a famous dwarf planet in the Kuiper belt.  
+/// 
 /// `include_orbit`: Whether to include the orbit of Pluto around the Sun.
 pub fn pluto(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -103,6 +111,7 @@ pub fn pluto(include_orbit: bool) -> Body {
 }
 
 /// Returns 136108 Haumea, a dwarf planet in the Kuiper belt.  
+/// 
 /// `include_orbit`: Whether to include the orbit of Haumea around the Sun.
 pub fn haumea(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -126,6 +135,7 @@ pub fn haumea(include_orbit: bool) -> Body {
 }
 
 /// Returns 136199 Eris, a dwarf planet, and a trans-Neptunian and scattered disc object.  
+/// 
 /// `include_orbit`: Whether to include the orbit of Eris around the Sun.
 pub fn eris(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -149,6 +159,7 @@ pub fn eris(include_orbit: bool) -> Body {
 }
 
 /// Returns 136472 Makemake, a dwarf planet in the Kuiper belt.  
+/// 
 /// `include_orbit`: Whether to include the orbit of Makemake around the Sun.
 pub fn makemake(include_orbit: bool) -> Body {
     let orbit = if include_orbit {

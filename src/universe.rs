@@ -150,6 +150,9 @@ impl Universe {
         }
     }
 
+    /// Gets the absolute position of a body in the universe.
+    /// 
+    /// Each coordinate is in meters.
     pub fn get_body_position(&self, index: usize) -> (f64, f64, f64) {
         let body = &self.bodies[index];
 

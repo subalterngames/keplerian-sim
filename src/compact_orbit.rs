@@ -17,7 +17,8 @@ use crate::{
     OrbitTrait
 };
 
-/// A struct representing a Keplerian orbit.  
+/// A minimal struct representing a Keplerian orbit.
+/// 
 /// This struct minimizes memory footprint by not caching variables.  
 /// Because of this, calculations can be slower than caching those variables.  
 /// For this reason, you might consider using the `Orbit` struct instead.
@@ -47,8 +48,19 @@ pub struct CompactOrbit {
 
 // Initialization and cache management
 impl CompactOrbit {
-    /// Create a new CompactOrbit instance.
+    /// Creates a new `CompactOrbit` instance with the given parameters.
     /// 
+    /// Note: This function uses eccentricity instead of apoapsis.  
+    /// If you want to provide an apoapsis instead, consider using the
+    /// [`CompactOrbit::with_apoapsis`] function instead.
+    /// 
+    /// ### Parameters
+    /// - `eccentricity`: The eccentricity of the orbit.
+    /// - `periapsis`: The periapsis of the orbit, in meters.
+    /// - `inclination`: The inclination of the orbit, in radians.
+    /// - `arg_pe`: The argument of periapsis of the orbit, in radians.
+    /// - `long_asc_node`: The longitude of ascending node of the orbit, in radians.
+    /// - `mean_anomaly`: The mean anomaly of the orbit, in radians.
     pub fn new(
         eccentricity: f64, periapsis: f64,
         inclination: f64, arg_pe: f64, long_asc_node: f64,
@@ -61,6 +73,21 @@ impl CompactOrbit {
         };
     }
 
+    /// Creates a new `CompactOrbit` instance with the given parameters.
+    /// 
+    /// Note: This function uses apoapsis instead of eccentricity.  
+    /// Because of this, it's not recommended to initialize
+    /// parabolic or hyperbolic 'orbits' with this function.  
+    /// If you're looking to initialize a parabolic or hyperbolic
+    /// trajectory, consider using the [`CompactOrbit::new`] function instead.
+    /// 
+    /// ### Parameters
+    /// - `apoapsis`: The apoapsis of the orbit, in meters.
+    /// - `periapsis`: The periapsis of the orbit, in meters.
+    /// - `inclination`: The inclination of the orbit, in radians.
+    /// - `arg_pe`: The argument of periapsis of the orbit, in radians.
+    /// - `long_asc_node`: The longitude of ascending node of the orbit, in radians.
+    /// - `mean_anomaly`: The mean anomaly of the orbit, in radians.
     pub fn with_apoapsis(
         apoapsis: f64, periapsis: f64,
         inclination: f64, arg_pe: f64, long_asc_node: f64,
@@ -70,6 +97,9 @@ impl CompactOrbit {
         return CompactOrbit::new(eccentricity, periapsis, inclination, arg_pe, long_asc_node, mean_anomaly);
     }
 
+    /// Creates a unit orbit.
+    /// 
+    /// The unit orbit is a perfect circle of radius 1 and no "tilt".
     pub fn new_default() -> CompactOrbit {
         return Self::new(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     }
@@ -77,20 +107,31 @@ impl CompactOrbit {
 
 // The actual orbit position calculations
 impl CompactOrbit {
+    /// Gets the semi-major axis of the orbit.
+    /// 
+    /// In an elliptic orbit, the semi-major axis is the
+    /// average of the apoapsis and periapsis.  
+    /// This function uses a generalization which uses
+    /// eccentricity instead.
+    /// 
+    /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
     pub fn get_semi_major_axis(&self) -> f64 {
         return self.periapsis / (1.0 - self.eccentricity);
     }
     
+    /// Gets the semi-minor axis of the orbit.
+    /// 
+    /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
     pub fn get_semi_minor_axis(&self) -> f64 {
         let semi_major_axis = self.get_semi_major_axis();
         let eccentricity_squared = self.eccentricity * self.eccentricity;
-        if self.eccentricity < 1.0 {
-            return semi_major_axis * (1.0 - eccentricity_squared).sqrt();
-        } else {
-            return semi_major_axis * (eccentricity_squared - 1.0).sqrt();
-        }
+        return semi_major_axis * (1.0 - eccentricity_squared).abs().sqrt();
     }
     
+    /// Gets the linear eccentricity of the orbit, in meters.
+    /// 
+    /// In an elliptic orbit, the linear eccentricity is the distance
+    /// between its center and either of its two foci (focuses).
     pub fn get_linear_eccentricity(&self) -> f64 {
         return self.get_semi_major_axis() - self.periapsis;
     }

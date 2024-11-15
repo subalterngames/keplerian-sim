@@ -1,4 +1,4 @@
-//! This module contains presets for common celestial bodies.
+//! This module contains presets for common planets.
 //! 
 //! A planet is a celestial body that  
 //! (a) is in orbit around the Sun,  
@@ -7,11 +7,12 @@
 //!     equilibrium (nearly round) shape, and  
 //! (c) has cleared the neighbourhood around its orbit.
 //! 
-//! \- International Astronomical Union
+//! \- [International Astronomical Union](https://en.wikipedia.org/wiki/IAU_definition_of_planet#Final_definition)
 
 use crate::{Body, Orbit};
 
 /// Returns Mercury, the closest planet to the Sun.
+/// 
 /// `include_orbit`: Whether to include the orbit of Mercury around the Sun.
 pub fn mercury(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -35,6 +36,7 @@ pub fn mercury(include_orbit: bool) -> Body {
 }
 
 /// Returns Venus, the second planet from the Sun.
+/// 
 /// `include_orbit`: Whether to include the orbit of Venus around the Sun.
 pub fn venus(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -58,6 +60,7 @@ pub fn venus(include_orbit: bool) -> Body {
 }
 
 /// Returns Earth, the third planet from the Sun.
+/// 
 /// `include_orbit`: Whether to include the orbit of Earth around the Sun.
 pub fn earth(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -81,6 +84,7 @@ pub fn earth(include_orbit: bool) -> Body {
 }
 
 /// Returns Mars, the fourth planet from the Sun.
+/// 
 /// `include_orbit`: Whether to include the orbit of Mars around the Sun.
 pub fn mars(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -104,6 +108,7 @@ pub fn mars(include_orbit: bool) -> Body {
 }
 
 /// Returns Jupiter, the fifth planet from the Sun.  
+/// 
 /// `include_orbit`: Whether to include the orbit of Jupiter around the Sun.
 pub fn jupiter(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -127,6 +132,7 @@ pub fn jupiter(include_orbit: bool) -> Body {
 }
 
 /// Returns Saturn, the sixth planet from the Sun.  
+/// 
 /// `include_orbit`: Whether to include the orbit of Saturn around the Sun.
 pub fn saturn(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -150,6 +156,7 @@ pub fn saturn(include_orbit: bool) -> Body {
 }
 
 /// Returns Uranus, the seventh planet from the Sun.
+/// 
 /// `include_orbit`: Whether to include the orbit of Uranus around the Sun.
 pub fn uranus(include_orbit: bool) -> Body {
     let orbit = if include_orbit {
@@ -173,6 +180,7 @@ pub fn uranus(include_orbit: bool) -> Body {
 }
 
 /// Returns Neptune, the eighth planet from the Sun.
+/// 
 /// `include_orbit`: Whether to include the orbit of Neptune around the Sun.
 pub fn neptune(include_orbit: bool) -> Body {
     let orbit = if include_orbit {

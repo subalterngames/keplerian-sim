@@ -20,7 +20,8 @@ use crate::{
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
 
-/// A struct representing a Keplerian orbit with some cached values.  
+/// A struct representing a Keplerian orbit with some cached values.
+/// 
 /// This struct consumes significantly more memory because of the cache.  
 /// However, this will speed up orbital calculations.  
 /// If memory efficiency is your goal, you may consider using the `CompactOrbit` struct instead.  
@@ -66,6 +67,19 @@ struct OrbitCachedCalculations {
 }
 // Initialization and cache management
 impl Orbit {
+    /// Creates a new orbit with the given parameters.
+    /// 
+    /// Note: This function uses eccentricity instead of apoapsis.  
+    /// If you want to provide an apoapsis instead, consider using the
+    /// [`Orbit::with_apoapsis`] function instead.
+    /// 
+    /// ### Parameters
+    /// - `eccentricity`: The eccentricity of the orbit.
+    /// - `periapsis`: The periapsis of the orbit, in meters.
+    /// - `inclination`: The inclination of the orbit, in radians.
+    /// - `arg_pe`: The argument of periapsis of the orbit, in radians.
+    /// - `long_asc_node`: The longitude of ascending node of the orbit, in radians.
+    /// - `mean_anomaly`: The mean anomaly of the orbit, in radians.
     pub fn new(
         eccentricity: f64, periapsis: f64,
         inclination: f64, arg_pe: f64, long_asc_node: f64,
@@ -83,6 +97,21 @@ impl Orbit {
         };
     }
 
+    /// Creates a new orbit with the given parameters.
+    /// 
+    /// Note: This function uses apoapsis instead of eccentricity.  
+    /// Because of this, it's not recommended to initialize
+    /// parabolic or hyperbolic 'orbits' with this function.  
+    /// If you're looking to initialize a parabolic or hyperbolic
+    /// trajectory, consider using the [`Orbit::new`] function instead.
+    /// 
+    /// ### Parameters
+    /// - `apoapsis`: The apoapsis of the orbit, in meters.
+    /// - `periapsis`: The periapsis of the orbit, in meters.
+    /// - `inclination`: The inclination of the orbit, in radians.
+    /// - `arg_pe`: The argument of periapsis of the orbit, in radians.
+    /// - `long_asc_node`: The longitude of ascending node of the orbit, in radians.
+    /// - `mean_anomaly`: The mean anomaly of the orbit, in radians.
     pub fn with_apoapsis(
         apoapsis: f64, periapsis: f64,
         inclination: f64, arg_pe: f64, long_asc_node: f64,
@@ -92,6 +121,9 @@ impl Orbit {
         return Self::new(eccentricity, periapsis, inclination, arg_pe, long_asc_node, mean_anomaly);
     }
 
+    /// Creates a unit orbit.
+    /// 
+    /// The unit orbit is a perfect circle of radius 1 and no "tilt".
     pub fn new_default() -> Orbit {
         return Self::new(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     }
@@ -223,7 +255,6 @@ impl Orbit {
 
 // The actual orbit position calculations
 impl OrbitTrait for Orbit {
-    /// Numerically approaches the eccentric anomaly using Newton's method. Not performant; cache the result if you can!
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
         match self.cache.orbit_type {
             OrbitType::Elliptic => self.get_eccentric_anomaly_elliptic(mean_anomaly),
@@ -231,7 +262,6 @@ impl OrbitTrait for Orbit {
         }
     }
 
-    /// Gets the true anomaly from the mean anomaly. Not performant; cache the result if you can!
     fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
         let eccentric_anomaly = self.get_eccentric_anomaly(mean_anomaly);
 
@@ -251,7 +281,6 @@ impl OrbitTrait for Orbit {
         }
     }
 
-    /// Multiplies the input 2D vector with the 2x3 transformation matrix used to tilt the flat orbit into 3D space.
     fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3 {
         let matrix = &self.cache.transformation_matrix;
         return (
@@ -261,7 +290,6 @@ impl OrbitTrait for Orbit {
         );
     }
 
-    /// Gets the 2D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
     fn get_flat_position_at_angle(&self, true_anomaly: f64) -> Vec2 {
         // Polar equation for conic section:
         // r = p / (1 + e*cos(theta))
@@ -281,34 +309,28 @@ impl OrbitTrait for Orbit {
         );
     }
 
-    /// Gets the 3D position at a certain angle. True anomaly ranges from 0 to tau; anything out of range will wrap around.
     fn get_position_at_angle(&self, true_anomaly: f64) -> Vec3 {
         let (x, y) = self.get_flat_position_at_angle(true_anomaly);
         return self.tilt_flat_position(x, y);
     }
 
-    /// Gets the mean anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
         return t * std::f64::consts::TAU + self.mean_anomaly;
     }
 
-    /// Gets the eccentric anomaly at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
     fn get_eccentric_anomaly_at_time(&self, t: f64) -> f64 {
         return self.get_eccentric_anomaly(self.get_mean_anomaly_at_time(t));
     }
 
-    /// Gets the true anomaly at a certain time. t ranges form 0 to 1; anything out of range will wrap around.
     fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
         return self.get_true_anomaly(self.get_mean_anomaly_at_time(t));
     }
 
-    /// Gets the 2D position at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
     fn get_flat_position_at_time(&self, t: f64) -> Vec2 {
         let true_anomaly = self.get_true_anomaly_at_time(t);
         return self.get_flat_position_at_angle(true_anomaly);
     }
 
-    /// Gets the 3D position at a certain time. t ranges from 0 to 1; anything out of range will wrap around.
     fn get_position_at_time(&self, t: f64) -> Vec3 {
         let true_anomaly = self.get_true_anomaly_at_time(t);
         return self.get_position_at_angle(true_anomaly);
@@ -317,6 +339,8 @@ impl OrbitTrait for Orbit {
 
 // Getters and setters (boring)
 impl Orbit {
+    // These functions are extremely intuitive and do not require documentation
+    #![allow(missing_docs)]
     pub fn get_periapsis          (&self) -> f64 { self.periapsis }
     pub fn get_inclination        (&self) -> f64 { self.inclination }
     pub fn get_arg_pe             (&self) -> f64 { self.arg_pe }
