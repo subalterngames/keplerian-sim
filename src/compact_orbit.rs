@@ -1,16 +1,3 @@
-// Credits:
-//
-// Scott Anderson
-// https://github.com/ScottyRAnderson/Keplerian-Orbits
-// https://www.youtube.com/watch?v=t89De819YMA
-//
-// M.Eng. René Schwarz
-// https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
-//
-// Wikipedia and their editors
-// https://en.wikipedia.org/wiki/Orbital_elements#Keplerian
-// ..and many more pages
-
 use crate::{
     keplers_equation,
     keplers_equation_derivative,
