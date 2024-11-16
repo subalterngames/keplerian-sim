@@ -1,3 +1,5 @@
+use std::f64::consts::{PI, TAU};
+
 use crate::{
     keplers_equation,
     keplers_equation_derivative,
@@ -98,37 +100,126 @@ impl CompactOrbit {
     }
 }
 
+
+/// A constant used to get the initial seed for the eccentric anomaly.
+/// 
+/// It's very arbitrary, but according to some testing, a value just
+/// below 1 works better than exactly 1.
+/// 
+/// Source:
+/// "Two fast and accurate routines for solving the elliptic Kepler
+/// equation for all values of the eccentricity and mean anomaly"
+/// by Daniele Tommasini and David N. Olivieri,
+/// section 2.1.2, 'The "rational seed"'
+/// 
+/// https://doi.org/10.1051/0004-6361/202141423
+const B: f64 = 0.999999;
+
+/// The maximum number of iterations for the Newton-Raphson method.
+/// 
+/// This is used to prevent infinite loops in case the method fails to converge.
+const NEWTON_MAX_ITERS: u32 = 1000;
+
+const PI_SQUARED: f64 = PI * PI;
+
+/// The target accuracy for Newton's method.
+/// 
+/// Except not. It's more complicated than that.
+/// 
+/// "Two fast and accurate routines for solving the elliptic Kepler
+/// equation for all values of the eccentricity and mean anomaly"
+/// by Daniele Tommasini and David N. Olivieri,
+/// section 2.1.1. 'The iteration stopping condition' says:  
+/// "As we shall demonstrate in Sect. 4.2, Eq. (9) holds
+/// whenever the accuracy is set to a level BIG_EPSILON ≲ 10−4 rad."
+/// 
+/// The paper represents this value as a fancy E.  
+/// It looks like a big epsilon.
+/// 
+/// Because of this I set it to 1e-11.
+/// 
+/// https://doi.org/10.1051/0004-6361/202141423
+const TARGET_ACCURACY: f64 = 1e-11;
+
+/// The machine epsilon for f64.
+/// 
+/// Source:
+/// "Two fast and accurate routines for solving the elliptic Kepler
+/// equation for all values of the eccentricity and mean anomaly"
+/// by Daniele Tommasini and David N. Olivieri,
+/// section 2.1.1. 'The iteration stopping condition' says:  
+/// "the machine epsilon ϵ has been introduced"
+/// 
+/// The paper represents this value as a lowercase epsilon.
+const MACHINE_EPSILON: f64 = f64::EPSILON;
+
 impl CompactOrbit {
+    // "Two fast and accurate routines for solving
+    // the elliptic Kepler equation for all values
+    // of the eccentricity and mean anomaly" by
+    // Daniele Tommasini and David N. Olivieri
+    // 
+    // https://doi.org/10.1051/0004-6361/202141423
     fn get_eccentric_anomaly_elliptic(&self, mean_anomaly: f64) -> f64 {
-        let target_accuracy = 1e-9;
-        const MAX_ITERATIONS: u16 = 1000;
-    
-        // Starting guess
-        let eccentricity = self.eccentricity;
-        let mut eccentric_anomaly = {
-            if eccentricity > 0.8 { std::f64::consts::PI }
-            else { eccentricity }
-        };
+        // Use the symmetry and periodicity of the eccentric anomaly
+        // Equation 2 of the aforementioned paper
+        if mean_anomaly > PI {
+            return self.get_eccentric_anomaly_elliptic(mean_anomaly - TAU);
+        }
+        if mean_anomaly < 0.0 {
+            return -self.get_eccentric_anomaly_elliptic(-mean_anomaly);
+        }
         
-        for _ in 0..MAX_ITERATIONS {
+        // Starting guess
+        // Section 2.1.2, 'The "rational seed"',
+        // Equation 19, of the aforementioned paper
+        //
+        // E_0 = M + (4beM(pi - M)) / (8eM + 4e(e-pi) + pi^2)
+        // where:
+        // e = eccentricity
+        // M = mean anomaly
+        // pi = the constant PI
+        // b = the constant B
+        let mut eccentric_anomaly =
+            mean_anomaly +
+            (4.0 * self.eccentricity * B * mean_anomaly * (PI - mean_anomaly)) /
+            (
+                8.0 * self.eccentricity * mean_anomaly +
+                4.0 * self.eccentricity * (self.eccentricity - PI) +
+                PI_SQUARED
+            );
+        
+        for _ in 0..NEWTON_MAX_ITERS {
             // NEWTON'S METHOD
             // x_n+1 = x_n - f(x_n)/f'(x_n)
-    
+
             let next_value = 
                 eccentric_anomaly - 
                 (
-                    keplers_equation(mean_anomaly, eccentric_anomaly, eccentricity) /
-                    keplers_equation_derivative(eccentric_anomaly, eccentricity)
+                    keplers_equation(mean_anomaly, eccentric_anomaly, self.eccentricity) /
+                    keplers_equation_derivative(eccentric_anomaly, self.eccentricity)
                 );
-    
+
             let diff = (eccentric_anomaly - next_value).abs();
             eccentric_anomaly = next_value;
-    
-            if diff < target_accuracy {
+
+            // Section 2.1.1, 'The iteration stopping condition',
+            // Equation 9, of the aforementioned paper, says:
+            // 
+            // delta_n^2 < (2(1 - e cos E_n) * fancy_e) / (e + machine_epsilon)
+            //
+            // we can rearrange it to remove the slow division into a multiplication:
+            //
+            // delta_n^2 * (e + machine_epsilon) < 2(1 - e cos E_n) * fancy_e
+
+            if
+                diff * diff * (self.eccentricity + MACHINE_EPSILON) <
+                2.0 * (1.0 - self.eccentricity * eccentric_anomaly.cos()) * TARGET_ACCURACY
+            {
                 break;
             }
         }
-    
+
         return eccentric_anomaly;
     }
 
@@ -281,7 +372,7 @@ impl OrbitTrait for CompactOrbit {
 
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
         let time = t.rem_euclid(1.0);
-        return time * std::f64::consts::TAU + self.mean_anomaly;
+        return time * TAU + self.mean_anomaly;
     }
 }
 

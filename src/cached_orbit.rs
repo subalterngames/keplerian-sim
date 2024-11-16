@@ -201,10 +201,10 @@ const PI_SQUARED: f64 = PI * PI;
 /// The paper represents this value as a fancy E.  
 /// It looks like a big epsilon.
 /// 
-/// Because of this I set it to 1e-6.
+/// Because of this I set it to 1e-11.
 /// 
 /// https://doi.org/10.1051/0004-6361/202141423
-const TARGET_ACCURACY: f64 = 1e-6;
+const TARGET_ACCURACY: f64 = 1e-11;
 
 /// The machine epsilon for f64.
 /// 
@@ -220,13 +220,40 @@ const MACHINE_EPSILON: f64 = f64::EPSILON;
 
 // Kepler solvers
 impl Orbit {
+    // "Two fast and accurate routines for solving
+    // the elliptic Kepler equation for all values
+    // of the eccentricity and mean anomaly" by
+    // Daniele Tommasini and David N. Olivieri
+    // 
+    // https://doi.org/10.1051/0004-6361/202141423
     fn get_eccentric_anomaly_elliptic(&self, mean_anomaly: f64) -> f64 {
-        let target_accuracy = 1e-9;
-
+        // Use the symmetry and periodicity of the eccentric anomaly
+        // Equation 2 of the aforementioned paper
+        if mean_anomaly > PI {
+            return self.get_eccentric_anomaly_elliptic(mean_anomaly - TAU);
+        }
+        if mean_anomaly < 0.0 {
+            return -self.get_eccentric_anomaly_elliptic(-mean_anomaly);
+        }
+        
         // Starting guess
+        // Section 2.1.2, 'The "rational seed"',
+        // Equation 19, of the aforementioned paper
+        //
+        // E_0 = M + (4beM(pi - M)) / (8eM + 4e(e-pi) + pi^2)
+        // where:
+        // e = eccentricity
+        // M = mean anomaly
+        // pi = the constant PI
+        // b = the constant B
         let mut eccentric_anomaly =
-            if self.eccentricity > 0.8 { PI }
-            else { self.eccentricity };
+            mean_anomaly +
+            (4.0 * self.eccentricity * B * mean_anomaly * (PI - mean_anomaly)) /
+            (
+                8.0 * self.eccentricity * mean_anomaly +
+                4.0 * self.eccentricity * (self.eccentricity - PI) +
+                PI_SQUARED
+            );
         
         for _ in 0..NEWTON_MAX_ITERS {
             // NEWTON'S METHOD
@@ -242,7 +269,19 @@ impl Orbit {
             let diff = (eccentric_anomaly - next_value).abs();
             eccentric_anomaly = next_value;
 
-            if diff < target_accuracy {
+            // Section 2.1.1, 'The iteration stopping condition',
+            // Equation 9, of the aforementioned paper, says:
+            // 
+            // delta_n^2 < (2(1 - e cos E_n) * fancy_e) / (e + machine_epsilon)
+            //
+            // we can rearrange it to remove the slow division into a multiplication:
+            //
+            // delta_n^2 * (e + machine_epsilon) < 2(1 - e cos E_n) * fancy_e
+
+            if
+                diff * diff * (self.eccentricity + MACHINE_EPSILON) <
+                2.0 * (1.0 - self.eccentricity * eccentric_anomaly.cos()) * TARGET_ACCURACY
+            {
                 break;
             }
         }
@@ -324,11 +363,11 @@ impl Orbit {
             }
         }
 
-        // assert_eq!(
-        //     eccentric_anomaly.to_bits(),
-        //     self.get_eccentric_anomaly_elliptic(mean_anomaly).to_bits(),
-        //     "Desync between debug and regular versions of get_eccentric_anomaly_elliptic!"
-        // );
+        assert_eq!(
+            eccentric_anomaly.to_bits(),
+            self.get_eccentric_anomaly_elliptic(mean_anomaly).to_bits(),
+            "Desync between debug and regular versions of get_eccentric_anomaly_elliptic!"
+        );
 
         if iterations == NEWTON_MAX_ITERS {
             eprintln!(
