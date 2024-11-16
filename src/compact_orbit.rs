@@ -160,14 +160,18 @@ impl CompactOrbit {
     // Daniele Tommasini and David N. Olivieri
     // 
     // https://doi.org/10.1051/0004-6361/202141423
-    fn get_eccentric_anomaly_elliptic(&self, mean_anomaly: f64) -> f64 {
+    fn get_eccentric_anomaly_elliptic(&self, mut mean_anomaly: f64) -> f64 {
+        let mut sign = 1.0;
         // Use the symmetry and periodicity of the eccentric anomaly
         // Equation 2 of the aforementioned paper
         if mean_anomaly > PI {
-            return self.get_eccentric_anomaly_elliptic(mean_anomaly - TAU);
+            // return self.get_eccentric_anomaly_elliptic(mean_anomaly - TAU);
+            mean_anomaly -= TAU;
         }
         if mean_anomaly < 0.0 {
-            return -self.get_eccentric_anomaly_elliptic(-mean_anomaly);
+            // return -self.get_eccentric_anomaly_elliptic(-mean_anomaly);
+            mean_anomaly = -mean_anomaly;
+            sign = -1.0;
         }
         
         // Starting guess
@@ -220,7 +224,7 @@ impl CompactOrbit {
             }
         }
 
-        return eccentric_anomaly;
+        return eccentric_anomaly * sign;
     }
 
     fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
