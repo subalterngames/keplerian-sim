@@ -9,6 +9,7 @@ use crate::{
     keplers_equation_hyperbolic_derivative,
     keplers_equation_hyperbolic_second_derivative
 };
+use std::f64::consts::{PI, TAU};
 
 /// A struct representing a Keplerian orbit with some cached values.
 /// 
@@ -163,17 +164,71 @@ impl Orbit {
         }
         return matrix;
     }
+}
 
+/// A constant used to get the initial seed for the eccentric anomaly.
+/// 
+/// It's very arbitrary, but according to some testing, a value just
+/// below 1 works better than exactly 1.
+/// 
+/// Source:
+/// "Two fast and accurate routines for solving the elliptic Kepler
+/// equation for all values of the eccentricity and mean anomaly"
+/// by Daniele Tommasini and David N. Olivieri,
+/// section 2.1.2, 'The "rational seed"'
+/// 
+/// https://doi.org/10.1051/0004-6361/202141423
+const B: f64 = 0.999999;
+
+/// The maximum number of iterations for the Newton-Raphson method.
+/// 
+/// This is used to prevent infinite loops in case the method fails to converge.
+const NEWTON_MAX_ITERS: u32 = 1000;
+
+const PI_SQUARED: f64 = PI * PI;
+
+/// The target accuracy for Newton's method.
+/// 
+/// Except not. It's more complicated than that.
+/// 
+/// "Two fast and accurate routines for solving the elliptic Kepler
+/// equation for all values of the eccentricity and mean anomaly"
+/// by Daniele Tommasini and David N. Olivieri,
+/// section 2.1.1. 'The iteration stopping condition' says:  
+/// "As we shall demonstrate in Sect. 4.2, Eq. (9) holds
+/// whenever the accuracy is set to a level BIG_EPSILON ≲ 10−4 rad."
+/// 
+/// The paper represents this value as a fancy E.  
+/// It looks like a big epsilon.
+/// 
+/// Because of this I set it to 1e-6.
+/// 
+/// https://doi.org/10.1051/0004-6361/202141423
+const TARGET_ACCURACY: f64 = 1e-6;
+
+/// The machine epsilon for f64.
+/// 
+/// Source:
+/// "Two fast and accurate routines for solving the elliptic Kepler
+/// equation for all values of the eccentricity and mean anomaly"
+/// by Daniele Tommasini and David N. Olivieri,
+/// section 2.1.1. 'The iteration stopping condition' says:  
+/// "the machine epsilon ϵ has been introduced"
+/// 
+/// The paper represents this value as a lowercase epsilon.
+const MACHINE_EPSILON: f64 = f64::EPSILON;
+
+// Kepler solvers
+impl Orbit {
     fn get_eccentric_anomaly_elliptic(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
-        let max_iterations = 1000;
 
         // Starting guess
         let mut eccentric_anomaly =
-            if self.eccentricity > 0.8 { std::f64::consts::PI }
+            if self.eccentricity > 0.8 { PI }
             else { self.eccentricity };
         
-        for _ in 0..max_iterations {
+        for _ in 0..NEWTON_MAX_ITERS {
             // NEWTON'S METHOD
             // x_n+1 = x_n - f(x_n)/f'(x_n)
 
@@ -195,19 +250,48 @@ impl Orbit {
         return eccentric_anomaly;
     }
 
+    // "Two fast and accurate routines for solving
+    // the elliptic Kepler equation for all values
+    // of the eccentricity and mean anomaly" by
+    // Daniele Tommasini and David N. Olivieri
+    // 
+    // https://doi.org/10.1051/0004-6361/202141423
     #[doc(hidden)]
     #[cfg(debug_assertions)]
     pub fn get_eccentric_anomaly_elliptic_debug(&self, mean_anomaly: f64) -> (f64, u32) {
-        let target_accuracy = 1e-9;
-        let max_iterations: u32 = 1000;
+        // Use the symmetry and periodicity of the eccentric anomaly
+        // Equation 2 of the aforementioned paper
+        if mean_anomaly > PI {
+            return self.get_eccentric_anomaly_elliptic_debug(mean_anomaly - TAU);
+        }
+        if mean_anomaly < 0.0 {
+            // return -self.get_eccentric_anomaly_elliptic_debug(-mean_anomaly);
+            let (res, iters) = self.get_eccentric_anomaly_elliptic_debug(-mean_anomaly);
+            return (-res, iters);
+        }
+        
         let mut iterations: u32 = 0;
 
         // Starting guess
+        // Section 2.1.2, 'The "rational seed"',
+        // Equation 19, of the aforementioned paper
+        //
+        // E_0 = M + (4beM(pi - M)) / (8eM + 4e(e-pi) + pi^2)
+        // where:
+        // e = eccentricity
+        // M = mean anomaly
+        // pi = the constant PI
+        // b = the constant B
         let mut eccentric_anomaly =
-            if self.eccentricity > 0.8 { std::f64::consts::PI }
-            else { self.eccentricity };
+            mean_anomaly +
+            (4.0 * self.eccentricity * B * mean_anomaly * (PI - mean_anomaly)) /
+            (
+                8.0 * self.eccentricity * mean_anomaly +
+                4.0 * self.eccentricity * (self.eccentricity - PI) +
+                PI_SQUARED
+            );
         
-        for _ in 0..max_iterations {
+        for _ in 0..NEWTON_MAX_ITERS {
             // NEWTON'S METHOD
             // x_n+1 = x_n - f(x_n)/f'(x_n)
 
@@ -223,23 +307,35 @@ impl Orbit {
 
             iterations += 1;
 
-            if diff < target_accuracy {
+            // Section 2.1.1, 'The iteration stopping condition',
+            // Equation 9, of the aforementioned paper, says:
+            // 
+            // delta_n^2 < (2(1 - e cos E_n) * fancy_e) / (e + machine_epsilon)
+            //
+            // we can rearrange it to remove the slow division into a multiplication:
+            //
+            // delta_n^2 * (e + machine_epsilon) < 2(1 - e cos E_n) * fancy_e
+
+            if
+                diff * diff * (self.eccentricity + MACHINE_EPSILON) <
+                2.0 * (1.0 - self.eccentricity * eccentric_anomaly.cos()) * TARGET_ACCURACY
+            {
                 break;
             }
         }
 
-        assert_eq!(
-            eccentric_anomaly.to_bits(),
-            self.get_eccentric_anomaly_elliptic(mean_anomaly).to_bits(),
-            "Desync between debug and regular versions of get_eccentric_anomaly_elliptic!"
-        );
+        // assert_eq!(
+        //     eccentric_anomaly.to_bits(),
+        //     self.get_eccentric_anomaly_elliptic(mean_anomaly).to_bits(),
+        //     "Desync between debug and regular versions of get_eccentric_anomaly_elliptic!"
+        // );
 
-        if iterations == max_iterations {
+        if iterations == NEWTON_MAX_ITERS {
             eprintln!(
                 "Warning: get_eccentric_anomaly_elliptic_debug failed to converge after {iterations} iterations\n\
-                With params:\n\
-                mean_anomaly: {mean_anomaly}\n\
-                eccentricity: {}", self.eccentricity,
+                ..With params:\n\
+                ....mean_anomaly: {mean_anomaly}\n\
+                ....eccentricity: {}", self.eccentricity,
             );
         }
 
@@ -379,7 +475,7 @@ impl OrbitTrait for Orbit {
     }
 
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
-        return t * std::f64::consts::TAU + self.mean_anomaly;
+        return t * TAU + self.mean_anomaly;
     }
 }
 
