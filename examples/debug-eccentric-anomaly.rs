@@ -1,4 +1,4 @@
-use keplerian_rust::{OrbitTrait, Orbit};
+use keplerian_rust::Orbit;
 use std::{fs, path::PathBuf};
 
 const CSV_PATH: &str = "out/output-debug-eccentric-anomaly.csv";
@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mean_anomalies = get_mean_anomalies();
 
     let data_points = eccentricities.len() * mean_anomalies.len();
-    let mut data: Vec<(f64, f64, u32)> = Vec::with_capacity(
+    let mut data: Vec<(f64, f64, u32, f64)> = Vec::with_capacity(
         data_points
     );
 
@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for M in mean_anomalies.iter() {
             let (E, iters) = 
                 orbit.get_eccentric_anomaly_elliptic_debug(*M);
-            data.push((*M, E, iters));
+            data.push((*M, e, iters, E));
         }
     }
 
@@ -34,19 +34,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Summary:");
 
     {
-        let mut min_iters = (0.0, 0.0, u32::MAX);
-        let mut max_iters = (0.0, 0.0, 0);
+        let mut min_iters = (0.0, 0.0, u32::MAX, 0.0);
+        let mut max_iters = (0.0, 0.0, 0, 0.0);
         
         let mut total_iters = 0;
         let mut diverge_count = 0;
 
-        for (M, e, iters) in data.iter() {
+        for (M, e, iters, E) in data.iter() {
             if iters < &min_iters.2 {
-                min_iters = (*M, *e, *iters);
+                min_iters = (*M, *e, *iters, *E);
             }
 
             if iters > &max_iters.2 {
-                max_iters = (*M, *e, *iters);
+                max_iters = (*M, *e, *iters, *E);
             }
 
             if iters == &1000 {
@@ -60,19 +60,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!(
             "Minimum # of iterations: {}\n\
-             ...with M = {}, e = {}\n",
-            min_iters.2, min_iters.0, min_iters.1
+             ...with M = {}, e = {}\n\
+             ...resulting in E = {}\n",
+            min_iters.2, min_iters.0, min_iters.1, min_iters.3
         );
             
         println!(
             "Maximum # of iterations: {}\n\
-             ...with M = {}, e = {}\n",
-            max_iters.2, max_iters.0, max_iters.1
+             ...with M = {}, e = {}\n\
+             ...resulting in E = {}\n",
+            max_iters.2, max_iters.0, max_iters.1, max_iters.3
         );
 
         println!(
-            "Out of {} data points, {} ({:.2?} ppm) did not converge\n",
-            data_points, diverge_count, diverge_count as f64 / data_points as f64 * 1e6
+            "Out of {} data points, {} ({:.2?}%) did not converge\n",
+            data_points, diverge_count, diverge_count as f64 / data_points as f64 * 100.0
         );
 
         println!(
@@ -99,13 +101,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     return Ok(());
 }
 
-fn create_csv(positions: &Vec<(f64, f64, u32)>) -> String {
+fn create_csv(positions: &Vec<(f64, f64, u32, f64)>) -> String {
     let mut string = String::new();
 
-    string += "M,e,iters\n";
+    string += "M,e,iters,result\n";
 
-    for (M, e, iters) in positions {
-        string += &format!("{M},{e},{iters}\n");
+    for (M, e, iters, result) in positions {
+        string += &format!("{M},{e},{iters},{result}\n");
     }
 
     return string;
