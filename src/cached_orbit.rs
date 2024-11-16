@@ -272,6 +272,8 @@ impl Orbit {
             let fp = keplers_equation_derivative(eccentric_anomaly, self.eccentricity);
             let fpp = keplers_equation_second_derivative(eccentric_anomaly, self.eccentricity);
 
+            // TODO: investigate whether or not this is the correct `n`
+            // TODO: apply this new algo to compact orbit
             let n = i as f64;
             let n_minus_1 = n - 1.0;
             let d = ((n_minus_1 * n_minus_1) * fp * fp - n * n_minus_1 * f * fpp).abs().sqrt().copysign(fp);

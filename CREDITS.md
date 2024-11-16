@@ -24,6 +24,10 @@ https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Car
 for their paper "Two fast and accurate routines for solving the elliptic Kepler equation for all values of the eccentricity and mean anomaly"
 https://doi.org/10.1051/0004-6361/202141423
 
+## Bruce A. Conway
+for their paper "An improved algorithm due to laguerre for the solution of Kepler's equation."
+https://doi.org/10.1007/bf01230852
+
 ## Wikipedia and their editors
 https://en.wikipedia.org/wiki/Orbital_elements#Keplerian
 ...and many more pages
