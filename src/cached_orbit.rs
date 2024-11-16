@@ -226,6 +226,7 @@ impl Orbit {
         // "Two fast and accurate routines for solving
         // the elliptic Kepler equation for all values
         // of the eccentricity and mean anomaly"
+        mean_anomaly %= TAU;
         if mean_anomaly > PI {
             // return self.get_eccentric_anomaly_elliptic(mean_anomaly - TAU);
             mean_anomaly -= TAU;
@@ -273,9 +274,7 @@ impl Orbit {
 
             let n = i as f64;
             let n_minus_1 = n - 1.0;
-            let d = ((n_minus_1 * n_minus_1) * fp * fp - n * n_minus_1 * f * fpp).sqrt().copysign(fp);
-
-            debug_assert!(d.is_finite(), "Complex number??? self={self:?};M={mean_anomaly}");
+            let d = ((n_minus_1 * n_minus_1) * fp * fp - n * n_minus_1 * f * fpp).abs().sqrt().copysign(fp);
 
             let denominator = n * f / (fp + d.max(1e-30));
             eccentric_anomaly -= denominator;
@@ -300,6 +299,7 @@ impl Orbit {
         // "Two fast and accurate routines for solving
         // the elliptic Kepler equation for all values
         // of the eccentricity and mean anomaly"
+        mean_anomaly %= TAU;
         if mean_anomaly > PI {
             // return self.get_eccentric_anomaly_elliptic(mean_anomaly - TAU);
             mean_anomaly -= TAU;
@@ -347,9 +347,7 @@ impl Orbit {
 
             let n = i as f64;
             let n_minus_1 = n - 1.0;
-            let d = ((n_minus_1 * n_minus_1) * fp * fp - n * n_minus_1 * f * fpp).sqrt().copysign(fp);
-
-            debug_assert!(d.is_finite(), "Complex number???");
+            let d = ((n_minus_1 * n_minus_1) * fp * fp - n * n_minus_1 * f * fpp).abs().sqrt().copysign(fp);
 
             let denominator = n * f / (fp + d.max(1e-30));
             eccentric_anomaly -= denominator;
