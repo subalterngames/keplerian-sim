@@ -207,10 +207,10 @@ const N_U32: u32 = 5;
 /// faster convergence.
 const N_F64: f64 = 5.0;
 
-/// The maximum number of iterations for the Newton-Raphson method.
+/// The maximum number of iterations for the numerical approach algorithms.
 /// 
 /// This is used to prevent infinite loops in case the method fails to converge.
-const NEWTON_MAX_ITERS: u32 = 1000;
+const NUMERIC_MAX_ITERS: u32 = 1000;
 
 const PI_SQUARED: f64 = PI * PI;
 
@@ -267,14 +267,13 @@ impl Orbit {
         //
         // x_i+1 = x_i - (nf(x_i) / (f'(x_i) +/- D))
         // ...where the "+/-" is chosen to so that abs(denominator) is maximized
-        for i in 2..N_U32 {
+        for _ in 2..N_U32 {
             let f = keplers_equation(mean_anomaly, eccentric_anomaly, self.eccentricity);
             let fp = keplers_equation_derivative(eccentric_anomaly, self.eccentricity);
             let fpp = keplers_equation_second_derivative(eccentric_anomaly, self.eccentricity);
 
-            // TODO: investigate whether or not this is the correct `n`
             // TODO: apply this new algo to compact orbit
-            let n = i as f64;
+            let n = N_F64;
             let n_minus_1 = n - 1.0;
             let d = ((n_minus_1 * n_minus_1) * fp * fp - n * n_minus_1 * f * fpp).abs().sqrt().copysign(fp);
 
@@ -365,15 +364,15 @@ impl Orbit {
 
     fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
-        let max_iterations = 1000;
         let mut eccentric_anomaly =
             (2.0 * mean_anomaly.abs() / self.eccentricity).ln().max(0.01) *
             mean_anomaly.signum();
 
-        for _ in 0..max_iterations {
+        for _ in 0..NUMERIC_MAX_ITERS {
             // HALLEY'S METHOD
             // https://en.wikipedia.org/wiki/Halley%27s_method
             // x_n+1 = x_n - f(x_n) / (f'(x_n) - f(x_n) * f''(x_n) / (2 * f'(x_n)))
+            // TODO: Find a better numerical method for this
 
             let f = keplers_equation_hyperbolic(mean_anomaly, eccentric_anomaly, self.eccentricity);
             let fp = keplers_equation_hyperbolic_derivative(eccentric_anomaly, self.eccentricity);
