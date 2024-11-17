@@ -1,15 +1,7 @@
 use std::f64::consts::{PI, TAU};
 
 use crate::{
-    keplers_equation,
-    keplers_equation_derivative,
-    keplers_equation_hyperbolic,
-    keplers_equation_hyperbolic_derivative,
-    keplers_equation_hyperbolic_second_derivative,
-    ApoapsisSetterError,
-    Matrix3x2,
-    Orbit,
-    OrbitTrait
+    keplers_equation, keplers_equation_derivative, keplers_equation_hyperbolic, keplers_equation_hyperbolic_derivative, keplers_equation_hyperbolic_second_derivative, keplers_equation_second_derivative, ApoapsisSetterError, Matrix3x2, Orbit, OrbitTrait
 };
 
 /// A minimal struct representing a Keplerian orbit.
@@ -115,55 +107,51 @@ impl CompactOrbit {
 /// https://doi.org/10.1051/0004-6361/202141423
 const B: f64 = 0.999999;
 
-/// The maximum number of iterations for the Newton-Raphson method.
+/// A constant used for the Laguerre method.
+/// 
+/// The paper "An improved algorithm due to
+/// laguerre for the solution of Kepler's equation."
+/// says:
+/// 
+/// > Similar experimentation has been done with values of n both greater and smaller
+/// than n = 5. The speed of convergence seems to be very insensitive to the choice of n.
+/// No value of n was found to yield consistently better convergence properties than the
+/// choice of n = 5 though specific cases were found where other choices would give
+/// faster convergence.
+const N_U32: u32 = 5;
+
+/// A constant used for the Laguerre method.
+/// 
+/// The paper "An improved algorithm due to
+/// laguerre for the solution of Kepler's equation."
+/// says:
+/// 
+/// > Similar experimentation has been done with values of n both greater and smaller
+/// than n = 5. The speed of convergence seems to be very insensitive to the choice of n.
+/// No value of n was found to yield consistently better convergence properties than the
+/// choice of n = 5 though specific cases were found where other choices would give
+/// faster convergence.
+const N_F64: f64 = 5.0;
+
+/// The maximum number of iterations for numerical approach methods.
 /// 
 /// This is used to prevent infinite loops in case the method fails to converge.
-const NEWTON_MAX_ITERS: u32 = 1000;
+const NUMERIC_MAX_ITERS: u32 = 1000;
 
 const PI_SQUARED: f64 = PI * PI;
 
-/// The target accuracy for Newton's method.
-/// 
-/// Except not. It's more complicated than that.
-/// 
-/// "Two fast and accurate routines for solving the elliptic Kepler
-/// equation for all values of the eccentricity and mean anomaly"
-/// by Daniele Tommasini and David N. Olivieri,
-/// section 2.1.1. 'The iteration stopping condition' says:  
-/// "As we shall demonstrate in Sect. 4.2, Eq. (9) holds
-/// whenever the accuracy is set to a level BIG_EPSILON ≲ 10−4 rad."
-/// 
-/// The paper represents this value as a fancy E.  
-/// It looks like a big epsilon.
-/// 
-/// Because of this I set it to 1e-11.
-/// 
-/// https://doi.org/10.1051/0004-6361/202141423
-const TARGET_ACCURACY: f64 = 1e-11;
-
-/// The machine epsilon for f64.
-/// 
-/// Source:
-/// "Two fast and accurate routines for solving the elliptic Kepler
-/// equation for all values of the eccentricity and mean anomaly"
-/// by Daniele Tommasini and David N. Olivieri,
-/// section 2.1.1. 'The iteration stopping condition' says:  
-/// "the machine epsilon ϵ has been introduced"
-/// 
-/// The paper represents this value as a lowercase epsilon.
-const MACHINE_EPSILON: f64 = f64::EPSILON;
-
 impl CompactOrbit {
-    // "Two fast and accurate routines for solving
-    // the elliptic Kepler equation for all values
-    // of the eccentricity and mean anomaly" by
-    // Daniele Tommasini and David N. Olivieri
-    // 
-    // https://doi.org/10.1051/0004-6361/202141423
+    // "An improved algorithm due to laguerre for the solution of Kepler's equation."
+    // by Bruce A. Conway
+    // https://doi.org/10.1007/bf01230852
     fn get_eccentric_anomaly_elliptic(&self, mut mean_anomaly: f64) -> f64 {
         let mut sign = 1.0;
         // Use the symmetry and periodicity of the eccentric anomaly
-        // Equation 2 of the aforementioned paper
+        // Equation 2 from the paper
+        // "Two fast and accurate routines for solving
+        // the elliptic Kepler equation for all values
+        // of the eccentricity and mean anomaly"
+        mean_anomaly %= TAU;
         if mean_anomaly > PI {
             // return self.get_eccentric_anomaly_elliptic(mean_anomaly - TAU);
             mean_anomaly -= TAU;
@@ -173,10 +161,13 @@ impl CompactOrbit {
             mean_anomaly = -mean_anomaly;
             sign = -1.0;
         }
-        
+
         // Starting guess
         // Section 2.1.2, 'The "rational seed"',
-        // Equation 19, of the aforementioned paper
+        // equation 19, from the paper
+        // "Two fast and accurate routines for solving
+        // the elliptic Kepler equation for all values
+        // of the eccentricity and mean anomaly"
         //
         // E_0 = M + (4beM(pi - M)) / (8eM + 4e(e-pi) + pi^2)
         // where:
@@ -192,34 +183,30 @@ impl CompactOrbit {
                 4.0 * self.eccentricity * (self.eccentricity - PI) +
                 PI_SQUARED
             );
-        
-        for _ in 0..NEWTON_MAX_ITERS {
-            // NEWTON'S METHOD
-            // x_n+1 = x_n - f(x_n)/f'(x_n)
 
-            let next_value = 
-                eccentric_anomaly - 
-                (
-                    keplers_equation(mean_anomaly, eccentric_anomaly, self.eccentricity) /
-                    keplers_equation_derivative(eccentric_anomaly, self.eccentricity)
-                );
+        // Laguerre's method
+        // 
+        // i = 2, 3, ..., n
+        //
+        // D = sqrt((n-1)^2(f'(x_i))^2 - n(n-1)f(x_i)f''(x_i))
+        //
+        // x_i+1 = x_i - (nf(x_i) / (f'(x_i) +/- D))
+        // ...where the "+/-" is chosen to so that abs(denominator) is maximized
+        for _ in 2..N_U32 {
+            let f = keplers_equation(mean_anomaly, eccentric_anomaly, self.eccentricity);
+            let fp = keplers_equation_derivative(eccentric_anomaly, self.eccentricity);
+            let fpp = keplers_equation_second_derivative(eccentric_anomaly, self.eccentricity);
 
-            let diff = (eccentric_anomaly - next_value).abs();
-            eccentric_anomaly = next_value;
+            // TODO: apply this new algo to compact orbit
+            let n = N_F64;
+            let n_minus_1 = n - 1.0;
+            let d = ((n_minus_1 * n_minus_1) * fp * fp - n * n_minus_1 * f * fpp).abs().sqrt().copysign(fp);
 
-            // Section 2.1.1, 'The iteration stopping condition',
-            // Equation 9, of the aforementioned paper, says:
-            // 
-            // delta_n^2 < (2(1 - e cos E_n) * fancy_e) / (e + machine_epsilon)
-            //
-            // we can rearrange it to remove the slow division into a multiplication:
-            //
-            // delta_n^2 * (e + machine_epsilon) < 2(1 - e cos E_n) * fancy_e
+            let denominator = n * f / (fp + d.max(1e-30));
+            eccentric_anomaly -= denominator;
 
-            if
-                diff * diff * (self.eccentricity + MACHINE_EPSILON) <
-                2.0 * (1.0 - self.eccentricity * eccentric_anomaly.cos()) * TARGET_ACCURACY
-            {
+            if denominator.abs() < 1e-30 || !denominator.is_finite() {
+                // dangerously close to div-by-zero, break out
                 break;
             }
         }
@@ -229,12 +216,11 @@ impl CompactOrbit {
 
     fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
-        let max_iterations = 1000;
         let mut eccentric_anomaly =
             (2.0 * mean_anomaly.abs() / self.eccentricity).ln().max(0.01) *
             mean_anomaly.signum();
 
-        for _ in 0..max_iterations {
+        for _ in 0..NUMERIC_MAX_ITERS {
             // HALLEY'S METHOD
             // https://en.wikipedia.org/wiki/Halley%27s_method
             // x_n+1 = x_n - f(x_n) / (f'(x_n) - f(x_n) * f''(x_n) / (2 * f'(x_n)))
