@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{CompactOrbit, Orbit, OrbitTrait};
-use std::f64::consts::PI;
+use std::f64::consts::{PI, TAU};
 
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
@@ -245,6 +245,60 @@ fn huge_apoapsis() {
 
     assert_almost_eq_vec3(point_at_apoapsis, (-10000.0, 0.0, 0.0), "Ap");
     assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0), "Pe");
+}
+
+const JUST_BELOW_ONE: f64 = 0.9999999999999999;
+
+#[test]
+fn almost_parabolic() {
+    let orbit = Orbit::new(
+        // The largest f64 below 1
+        JUST_BELOW_ONE,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    );
+
+    let eccentric_anomalies = poll_eccentric_anomaly(&orbit);
+
+    for ecc in eccentric_anomalies {
+        assert!(
+            ecc.is_finite(),
+            "Eccentric anomaly algorithm instability at near-parabolic edge case"
+        );
+    }
+
+    let positions = poll_flat(&orbit);
+
+    for pos in positions {
+        assert!(
+            pos.0.is_finite() && pos.1.is_finite(),
+            "2D position algorithm instability at near-parabolic edge case"
+        );
+    }
+
+    let positions = poll_orbit(&orbit);
+
+    for pos in positions {
+        assert!(
+            pos.0.is_finite() && pos.1.is_finite() && pos.2.is_finite(),
+            "3D position algorithm instability at near-parabolic edge case"
+        );
+    }
+
+    let position_at_periapsis = orbit.get_position_at_angle(TAU);
+
+    assert_almost_eq_vec3(
+        position_at_periapsis,
+        (1.0, 0.0, 0.0),
+        "Periapsis"
+    );
+
+    let position_at_apoapsis = orbit.get_position_at_angle(PI);
+
+    assert!(position_at_apoapsis.0.abs() > 1e12, "Apoapsis is not far enough");
 }
 
 #[test]
