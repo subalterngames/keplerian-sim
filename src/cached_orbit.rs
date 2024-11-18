@@ -17,6 +17,58 @@ use std::f64::consts::{PI, TAU};
 /// This struct consumes significantly more memory because of the cache.  
 /// However, this will speed up orbital calculations.  
 /// If memory efficiency is your goal, you may consider using the `CompactOrbit` struct instead.  
+/// 
+/// # Example
+/// ```
+/// use keplerian_rust::{Orbit, OrbitTrait};
+/// 
+/// let orbit = Orbit::new(
+///     // Initialize using eccentricity, periapsis, inclination,
+///     // argument of periapsis, longitude of ascending node,
+///     // and mean anomaly at epoch
+/// 
+///     // Eccentricity
+///     0.0,
+/// 
+///     // Periapsis
+///     1.0,
+/// 
+///     // Inclination
+///     0.0,
+/// 
+///     // Argument of periapsis
+///     0.0,
+/// 
+///     // Longitude of ascending node
+///     0.0,
+/// 
+///     // Mean anomaly at epoch
+///     0.0,
+/// );
+/// 
+/// let orbit = Orbit::with_apoapsis(
+///     // Initialize using apoapsis in place of eccentricity
+///     
+///     // Apoapsis
+///     2.0,
+/// 
+///     // Periapsis
+///     1.0,
+/// 
+///     // Inclination
+///     0.0,
+/// 
+///     // Argument of periapsis
+///     0.0,
+/// 
+///     // Longitude of ascending node
+///     0.0,
+/// 
+///     // Mean anomaly at epoch
+///     0.0,
+/// );
+/// ```
+/// See [Orbit::new] and [Orbit::with_apoapsis] for more information.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Orbit {
     /// The eccentricity of the orbit.  

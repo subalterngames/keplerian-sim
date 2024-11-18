@@ -9,6 +9,58 @@ use crate::{
 /// This struct minimizes memory footprint by not caching variables.  
 /// Because of this, calculations can be slower than caching those variables.  
 /// For this reason, you might consider using the `Orbit` struct instead.
+/// 
+/// # Example
+/// ```
+/// use keplerian_rust::{CompactOrbit, OrbitTrait};
+/// 
+/// let orbit = CompactOrbit::new(
+///     // Initialize using eccentricity, periapsis, inclination,
+///     // argument of periapsis, longitude of ascending node,
+///     // and mean anomaly at epoch
+/// 
+///     // Eccentricity
+///     0.0,
+/// 
+///     // Periapsis
+///     1.0,
+/// 
+///     // Inclination
+///     0.0,
+/// 
+///     // Argument of periapsis
+///     0.0,
+/// 
+///     // Longitude of ascending node
+///     0.0,
+/// 
+///     // Mean anomaly at epoch
+///     0.0,
+/// );
+/// 
+/// let orbit = CompactOrbit::with_apoapsis(
+///     // Initialize using apoapsis in place of eccentricity
+///     
+///     // Apoapsis
+///     2.0,
+/// 
+///     // Periapsis
+///     1.0,
+/// 
+///     // Inclination
+///     0.0,
+/// 
+///     // Argument of periapsis
+///     0.0,
+/// 
+///     // Longitude of ascending node
+///     0.0,
+/// 
+///     // Mean anomaly at epoch
+///     0.0,
+/// );
+/// ```
+/// See [Orbit::new] and [Orbit::with_apoapsis] for more information.
 #[derive(Clone, Debug)]
 pub struct CompactOrbit {
     /// The eccentricity of the orbit.  

@@ -72,19 +72,51 @@ pub use universe::Universe;
 /// method to tilt a 2D position into 3D, using the orbital parameters.
 /// 
 /// Each element is named `eXY`, where `X` is the row and `Y` is the column.
+/// 
+/// # Example
+/// ```
+/// use keplerian_rust::Matrix3x2;
+/// 
+/// let matrix: Matrix3x2<f64> = Matrix3x2 {
+///    e11: 1.0, e12: 0.0,
+///    e21: 0.0, e22: 1.0,
+///    e31: 0.0, e32: 0.0,
+/// };
+/// 
+/// let vec = (1.0, 2.0);
+/// 
+/// let result = matrix.dot_vec(vec);
+/// 
+/// assert_eq!(result, (1.0, 2.0, 0.0));
+/// ```
+#[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Matrix3x2<T> {
     // Element XY
-    e11: T, e12: T,
-    e21: T, e22: T,
-    e31: T, e32: T
+    pub e11: T, pub e12: T,
+    pub e21: T, pub e22: T,
+    pub e31: T, pub e32: T
 }
 
 impl<T: Copy> Copy for Matrix3x2<T> {}
+impl<T: Eq> Eq for Matrix3x2<T> {}
 
 impl<T: Copy> Matrix3x2<T> {
     /// Create a new Matrix3x2 instance where each
     /// element is initialized with the same value.
+    /// 
+    /// # Example
+    /// ```
+    /// use keplerian_rust::Matrix3x2;
+    /// 
+    /// let matrix = Matrix3x2::filled_with(0.0);
+    /// 
+    /// assert_eq!(matrix, Matrix3x2 {
+    ///    e11: 0.0, e12: 0.0,
+    ///    e21: 0.0, e22: 0.0,
+    ///    e31: 0.0, e32: 0.0,
+    /// });
+    /// ```
     pub fn filled_with(element: T) -> Matrix3x2<T> {
         return Matrix3x2 {
             e11: element, e12: element,
@@ -99,6 +131,23 @@ where
     T: Copy + std::ops::Mul<Output = T> + std::ops::Add<Output = T>
 {
     /// Computes a dot product between this matrix and a 2D vector.
+    /// 
+    /// # Example
+    /// ```
+    /// use keplerian_rust::Matrix3x2;
+    /// 
+    /// let matrix: Matrix3x2<f64> = Matrix3x2 {
+    ///     e11: 1.0, e12: 0.0,
+    ///     e21: 0.0, e22: 1.0,
+    ///     e31: 1.0, e32: 1.0,
+    /// };
+    /// 
+    /// let vec = (1.0, 2.0);
+    /// 
+    /// let result = matrix.dot_vec(vec);
+    /// 
+    /// assert_eq!(result, (1.0, 2.0, 3.0));
+    /// ```
     pub fn dot_vec(&self, vec: (T, T)) -> (T, T, T) {
         return (
             vec.0 * self.e11 + vec.1 * self.e12,
@@ -114,6 +163,41 @@ type Vec2 = (f64, f64);
 /// A trait that defines the methods that a Keplerian orbit must implement.
 /// 
 /// This trait is implemented by both [`Orbit`] and [`CompactOrbit`].
+/// 
+/// # Examples
+/// ```
+/// use keplerian_rust::{Orbit, OrbitTrait, CompactOrbit};
+/// 
+/// fn accepts_orbit(orbit: &impl OrbitTrait) {
+///     println!("That's an orbit!");
+/// }
+/// 
+/// fn main() {
+///     let orbit = Orbit::new_default();
+///     accepts_orbit(&orbit);
+/// 
+///     let compact = CompactOrbit::new_default();
+///     accepts_orbit(&compact);
+/// }
+/// ```
+/// 
+/// ```compile_fail
+/// # use keplerian_rust::{Orbit, OrbitTrait, CompactOrbit};
+/// # 
+/// # fn accepts_orbit(orbit: &impl OrbitTrait) {
+/// #     println!("That's an orbit!");
+/// # }
+/// # 
+/// # fn main() {
+/// #     let orbit = Orbit::new_default();
+/// #     accepts_orbit(&orbit);
+/// #  
+/// #     let compact = CompactOrbit::new_default();
+/// #     accepts_orbit(&compact);
+/// let not_orbit = (0.0, 1.0);
+/// accepts_orbit(&not_orbit);
+/// # }
+/// ```
 pub trait OrbitTrait {
     /// Gets the semi-major axis of the orbit.
     /// 
@@ -123,9 +207,23 @@ pub trait OrbitTrait {
     /// eccentricity instead.
     /// 
     /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
+    /// 
+    /// # Example
+    /// ```
+    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// 
+    /// let mut orbit = Orbit::new_default();
+    /// orbit.set_periapsis(50.0);
+    /// orbit.set_apoapsis_force(100.0);
+    /// let sma = orbit.get_semi_major_axis();
+    /// let expected = 75.0;
+    /// assert!((sma - expected).abs() < 1e-6);
+    /// ```
     fn get_semi_major_axis(&self) -> f64;
 
     /// Gets the semi-minor axis of the orbit.
+    /// 
+    /// In an elliptic orbit, the semi-minor axis is half of the "width" of the orbit.
     /// 
     /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
     fn get_semi_minor_axis(&self) -> f64;
@@ -139,11 +237,46 @@ pub trait OrbitTrait {
     /// 
     /// In an elliptic orbit, the linear eccentricity is the distance
     /// between its center and either of its two foci (focuses).
+    /// 
+    /// # Example
+    /// ```
+    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// 
+    /// let mut orbit = Orbit::new_default();
+    /// orbit.set_periapsis(50.0);
+    /// orbit.set_apoapsis_force(100.0);
+    /// 
+    /// // Let's say the periapsis is at x = -50.
+    /// // The apoapsis would be at x = 100.
+    /// // The midpoint would be at x = 25.
+    /// // The parent body - one of its foci - is always at the origin (x = 0).
+    /// // This means the linear eccentricity is 25.
+    /// 
+    /// let linear_eccentricity = orbit.get_linear_eccentricity();
+    /// let expected = 25.0;
+    /// 
+    /// assert!((linear_eccentricity - expected).abs() < 1e-6);
+    /// ```
     fn get_linear_eccentricity(&self) -> f64;
 
     /// Gets the apoapsis of the orbit.  
     /// Returns infinity for parabolic orbits.  
     /// Returns negative values for hyperbolic orbits.  
+    /// 
+    /// # Examples
+    /// ```
+    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// 
+    /// let mut orbit = Orbit::new_default();
+    /// orbit.set_eccentricity(0.5); // Elliptic
+    /// assert!(orbit.get_apoapsis() > 0.0);
+    /// 
+    /// orbit.set_eccentricity(1.0); // Parabolic
+    /// assert!(orbit.get_apoapsis().is_infinite());
+    /// 
+    /// orbit.set_eccentricity(2.0); // Hyperbolic
+    /// assert!(orbit.get_apoapsis() < 0.0);
+    /// ```
     fn get_apoapsis(&self) -> f64;
 
     /// Sets the apoapsis of the orbit.  
@@ -151,6 +284,33 @@ pub trait OrbitTrait {
     /// If you want a setter that does not error, use `set_apoapsis_force`, which will
     /// try its best to interpret what you might have meant, but may have
     /// undesirable behavior.
+    /// 
+    /// # Examples
+    /// ```
+    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// 
+    /// let mut orbit = Orbit::new_default();
+    /// orbit.set_periapsis(50.0);
+    /// 
+    /// assert!(
+    ///     orbit.set_apoapsis(100.0)
+    ///         .is_ok()
+    /// );
+    /// 
+    /// let result = orbit.set_apoapsis(25.0);
+    /// assert!(result.is_err());
+    /// assert!(
+    ///     result.unwrap_err() ==
+    ///     keplerian_rust::ApoapsisSetterError::ApoapsisLessThanPeriapsis
+    /// );
+    /// 
+    /// let result = orbit.set_apoapsis(-25.0);
+    /// assert!(result.is_err());
+    /// assert!(
+    ///     result.unwrap_err() ==
+    ///     keplerian_rust::ApoapsisSetterError::ApoapsisNegative
+    /// );
+    /// ```
     fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError>;
 
     /// Sets the apoapsis of the orbit, with a best-effort attempt at interpreting
@@ -168,7 +328,19 @@ pub trait OrbitTrait {
     /// Gets the transformation matrix needed to tilt a 2D vector into the
     /// tilted orbital plane.
     /// 
+    /// # Example
+    /// ```
+    /// use keplerian_rust::{Orbit, OrbitTrait};
     /// 
+    /// let orbit = Orbit::new_default();
+    /// let matrix = orbit.get_transformation_matrix();
+    /// 
+    /// assert_eq!(matrix, keplerian_rust::Matrix3x2 {
+    ///     e11: 1.0, e12: 0.0,
+    ///     e21: 0.0, e22: 1.0,
+    ///     e31: 0.0, e32: 0.0,
+    /// });
+    /// ```
     fn get_transformation_matrix(&self) -> Matrix3x2<f64>;
 
     /// Gets the eccentric anomaly at a given mean anomaly in the orbit.
@@ -261,6 +433,19 @@ pub trait OrbitTrait {
     /// 
     /// The angle is expressed in radians, and ranges from 0 to tau.  
     /// Anything out of range will get wrapped around.
+    /// 
+    /// # Example
+    /// ```
+    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// 
+    /// let mut orbit = Orbit::new_default();
+    /// orbit.set_periapsis(100.0);
+    /// orbit.set_eccentricity(0.0);
+    /// 
+    /// let pos = orbit.get_position_at_angle(0.0);
+    /// 
+    /// assert_eq!(pos, (100.0, 0.0, 0.0));
+    /// ```
     fn get_position_at_angle(&self, angle: f64) -> Vec3 {
         let (x, y) = self.get_flat_position_at_angle(angle);
         self.tilt_flat_position(x, y)
@@ -273,6 +458,19 @@ pub trait OrbitTrait {
     /// 
     /// The angle is expressed in radians, and ranges from 0 to tau.  
     /// Anything out of range will get wrapped around.
+    /// 
+    /// # Example
+    /// ```
+    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// 
+    /// let mut orbit = Orbit::new_default();
+    /// orbit.set_periapsis(100.0);
+    /// orbit.set_eccentricity(0.0);
+    /// 
+    /// let pos = orbit.get_flat_position_at_angle(0.0);
+    /// 
+    /// assert_eq!(pos, (100.0, 0.0));
+    /// ```
     fn get_flat_position_at_angle(&self, angle: f64) -> Vec2 {
         let alt = self.get_altitude_at_angle(angle);
         return (
@@ -282,6 +480,19 @@ pub trait OrbitTrait {
     }
 
     /// Gets the altitude of the body from its parent at a given angle (true anomaly) in the orbit.
+    /// 
+    /// # Example
+    /// ```
+    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// 
+    /// let mut orbit = Orbit::new_default();
+    /// orbit.set_periapsis(100.0);
+    /// orbit.set_eccentricity(0.0);
+    /// 
+    /// let altitude = orbit.get_altitude_at_angle(0.0);
+    /// 
+    /// assert_eq!(altitude, 100.0);
+    /// ```
     fn get_altitude_at_angle(&self, angle: f64) -> f64;
 
     /// Gets the altitude of the body from its parent at a given time in the orbit.
