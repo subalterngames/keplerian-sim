@@ -322,9 +322,7 @@ impl OrbitTrait for CompactOrbit {
         }
     }
 
-    fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
-        let eccentric_anomaly = self.get_eccentric_anomaly(mean_anomaly);
-
+    fn get_true_anomaly_at_eccentric_anomaly(&self, eccentric_anomaly: f64) -> f64 {
         if self.eccentricity < 1.0 {
             // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
             let eccentricity = self.eccentricity;
@@ -341,23 +339,14 @@ impl OrbitTrait for CompactOrbit {
         }
     }
 
-    fn get_flat_position_at_angle(&self, true_anomaly: f64) -> (f64, f64) {
-        // Polar equation for conic section:
-        // r = p / (1 + e*cos(theta))
-        // ...where:
-        // r = radius from focus
-        // p = semi-latus rectum (periapsis * (1 + eccentricity))
-        // e = eccentricity
-        // theta = true anomaly
+    fn get_semi_latus_rectum(&self) -> f64 {
+        return self.periapsis * (1.0 + self.eccentricity);
+    }
 
-        let semi_latus_rectum = self.periapsis * (1.0 + self.eccentricity);
-        let radius = semi_latus_rectum / (1.0 + self.eccentricity * true_anomaly.cos());
-
-        // We then convert it into Cartesion (X, Y) coordinates:
-        return (
-            radius * true_anomaly.cos(),
-            radius * true_anomaly.sin()
-        );
+    fn get_altitude_at_angle(&self, true_anomaly: f64) -> f64 {
+        return
+            self.get_semi_latus_rectum() /
+            (1.0 + self.eccentricity * true_anomaly.cos());
     }
 
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {

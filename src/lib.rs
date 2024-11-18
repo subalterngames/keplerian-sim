@@ -130,6 +130,11 @@ pub trait OrbitTrait {
     /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
     fn get_semi_minor_axis(&self) -> f64;
 
+    /// Gets the semi-latus rectum of the orbit.
+    /// 
+    /// Learn more: <https://en.wikipedia.org/wiki/Ellipse#Semi-latus_rectum>
+    fn get_semi_latus_rectum(&self) -> f64;
+
     /// Gets the linear eccentricity of the orbit, in meters.
     /// 
     /// In an elliptic orbit, the linear eccentricity is the distance
@@ -182,6 +187,12 @@ pub trait OrbitTrait {
     /// \- [Wikipedia](https://en.wikipedia.org/wiki/Eccentric_anomaly)
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64;
 
+    /// Gets the true anomaly at a given eccentric anomaly in the orbit.
+    /// 
+    /// This function is faster than the function which takes mean anomaly as input,
+    /// as the eccentric anomaly is hard to calculate.
+    fn get_true_anomaly_at_eccentric_anomaly(&self, eccentric_anomaly: f64) -> f64;
+
     /// Gets the true anomaly at a given mean anomaly in the orbit.
     /// 
     /// The true anomaly is derived from the eccentric anomaly, which
@@ -193,7 +204,11 @@ pub trait OrbitTrait {
     /// of the ellipse.
     /// 
     /// \- [Wikipedia](https://en.wikipedia.org/wiki/True_anomaly)
-    fn get_true_anomaly(&self, mean_anomaly: f64) -> f64;
+    fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
+        self.get_true_anomaly_at_eccentric_anomaly(
+            self.get_eccentric_anomaly(mean_anomaly)
+        )
+    }
 
     /// Gets the mean anomaly at a given time in the orbit.
     /// 
@@ -258,7 +273,35 @@ pub trait OrbitTrait {
     /// 
     /// The angle is expressed in radians, and ranges from 0 to tau.  
     /// Anything out of range will get wrapped around.
-    fn get_flat_position_at_angle(&self, angle: f64) -> Vec2;
+    fn get_flat_position_at_angle(&self, angle: f64) -> Vec2 {
+        let alt = self.get_altitude_at_angle(angle);
+        return (
+            alt * angle.cos(),
+            alt * angle.sin()
+        );
+    }
+
+    /// Gets the altitude of the body from its parent at a given angle (true anomaly) in the orbit.
+    fn get_altitude_at_angle(&self, angle: f64) -> f64;
+
+    /// Gets the altitude of the body from its parent at a given time in the orbit.
+    /// 
+    /// This involves calculating the true anomaly at a given time, and so is not very performant.  
+    /// It is recommended to cache this value when possible.
+    /// 
+    /// For closed orbits (with an eccentricity less than 1), the
+    /// `t` (time) value ranges from 0 to 1.  
+    /// Anything out of range will get wrapped around.
+    /// 
+    /// For open orbits (with an eccentricity of at least 1), the
+    /// `t` (time) value is unbounded.  
+    /// Note that due to floating-point imprecision, values of extreme
+    /// magnitude may not be accurate.
+    fn get_altitude_at_time(&self, t: f64) -> f64 {
+        self.get_altitude_at_angle(
+            self.get_true_anomaly_at_time(t)
+        )
+    }
 
     /// Gets the 3D position at a given time in the orbit.
     /// 
