@@ -14,8 +14,4 @@ For the examples that dump a CSV, you can use external tools to chart it.
 One example is https://csvplot.com/.
 
 ## Resources
-I did not come up with the algorithms myself. Here are useful resources for converting Keplerian orbital parameters into Cartesian coordinates:  
-- [Wikipedia: Keplerian elements](https://en.wikipedia.org/wiki/Orbital_elements)
-- [Scott Anderson's Keplerian-Orbits repo](https://github.com/ScottyRAnderson/Keplerian-Orbits)
-- [Scott Anderson's Keplerian Orbits video](https://www.youtube.com/watch?v=t89De819YMA) (highly underrated)
-- [Converting Keplerian Orbital Elements to Cartesian State Vectors](https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf)
+I did not come up with the algorithms myself. For more information and useful resources to learn about the algorithms used, check out the `CREDITS.md` file.
