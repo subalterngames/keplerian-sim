@@ -361,6 +361,8 @@ impl Orbit {
 
             if denominator.abs() < 1e-30 || !denominator.is_finite() {
                 // dangerously close to div-by-zero, break out
+                #[cfg(debug_assertions)]
+                eprintln!("Hyperbolic eccentric anomaly solver: denominator is too small or not finite");
                 break;
             }
 

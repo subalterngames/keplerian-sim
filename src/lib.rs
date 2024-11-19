@@ -615,3 +615,5 @@ fn keplers_equation_hyperbolic_derivative(eccentric_anomaly: f64, eccentricity: 
 fn keplers_equation_hyperbolic_second_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
     return eccentricity * eccentric_anomaly.sinh();
 }
+
+mod generated_sinh_approximator;
