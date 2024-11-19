@@ -469,6 +469,17 @@ fn orbit_conversions() {
             )
         ),
         (
+            "Just below parabolic orbit",
+            Orbit::new(
+                JUST_BELOW_ONE,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
             "Parabolic trajectory",
             Orbit::new(
                 1.0,
@@ -535,6 +546,17 @@ fn orbit_conversions() {
             )
         ),
         (
+            "Tilted near-parabolic",
+            Orbit::new(
+                JUST_BELOW_ONE,
+                1.0,
+                2.848915582093,
+                1.9520945821,
+                2.1834987325,
+                0.69482153021
+            )
+        ),
+        (
             "Tilted parabolic",
             Orbit::new(
                 1.0,
@@ -560,5 +582,64 @@ fn orbit_conversions() {
 
     for (what, orbit) in orbits.iter() {
         orbit_conversion_base_test(orbit.clone(), what);
+    }
+}
+
+#[test]
+fn test_sinh_approx_lt5() {
+    use crate::generated_sinh_approximator::sinh_approx_lt5;
+    use std::fs;
+
+    const OUTPUT_CSV_PATH: &str = "out/test_sinh_approx_lt5.csv";
+    const GRANULARITY: f64 = 0.001;
+    const ITERATIONS: usize = (5.0f64 / GRANULARITY) as usize;
+    const MAX_ACCEPTABLE_DIFF: f64 = 1e-6;
+
+    let mut approx_data = Vec::with_capacity(ITERATIONS);
+    let mut real_data = Vec::with_capacity(ITERATIONS);
+    let mut diff_data = Vec::with_capacity(ITERATIONS);
+
+    let iterator = 
+        (0..ITERATIONS).map(|i| i as f64 * GRANULARITY);
+    
+    for x in iterator {
+        let approx = sinh_approx_lt5(x);
+        let real = x.sinh();
+
+        let diff = (approx - real).abs();
+
+        approx_data.push(approx);
+        real_data.push(real);
+        diff_data.push(diff);
+
+        // assert!(
+        //     diff < 1e1,
+        //     "Approx of sinh strayed too far at x={x} \
+        //     (approx={approx}, real={real}), with distance {diff}"
+        // );
+    }
+
+    let mut csv = String::new();
+
+    csv += "x,approx,real,diff\n";
+
+    for i in 0..ITERATIONS {
+        csv += &format!("{},{},{},{}\n", i as f64 * GRANULARITY, approx_data[i], real_data[i], diff_data[i]);
+    }
+
+    let _ = fs::write(OUTPUT_CSV_PATH, csv)
+        .inspect_err(|e| println!("Failed to write CSV: {}", e));
+
+    for i in 0..ITERATIONS {
+        assert!(
+            diff_data[i] < MAX_ACCEPTABLE_DIFF,
+            "Approx of sinh strayed too far at x={x} \
+            (approx={approx}, real={real}), with distance {diff}\n\n\
+            A CSV file has been written to '{OUTPUT_CSV_PATH}'",
+            x = i as f64 * GRANULARITY,
+            approx = approx_data[i],
+            real = real_data[i],
+            diff = diff_data[i]
+        );
     }
 }
