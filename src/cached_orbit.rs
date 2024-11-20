@@ -340,6 +340,27 @@ impl Orbit {
         return eccentric_anomaly * sign;
     }
 
+    /// Get an initial guess for the hyperbolic eccentric anomaly of an orbit.
+    /// 
+    /// From the paper:  
+    /// "A new method for solving the hyperbolic Kepler equation"  
+    /// by Baisheng Wu et al.  
+    /// Quote:
+    /// "we divide the hyperbolic eccentric anomaly interval into two parts:
+    /// a finite interval and an infinite interval. For the finite interval,
+    /// we apply a piecewise Pade approximation to establish an initial
+    /// approximate solution of HKE. For the infinite interval, an analytical
+    /// initial approximate solution is constructed."
+    fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> f64 {
+        let sign = mean_anomaly.signum();
+        let mean_anomaly = mean_anomaly.abs();
+
+        let mut eccentric_anomaly: f64 = {
+            // TODO
+            todo!();
+        }
+    }
+
     fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
         let target_accuracy = 1e-9;
         let mut eccentric_anomaly =

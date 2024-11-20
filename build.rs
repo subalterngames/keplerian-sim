@@ -59,31 +59,44 @@ fn generate_sinh_approximator() -> String {
         #![allow(clippy::all)]
         #![allow(dead_code)]
 
-        fn sinh_approx_lt5_inner(
-            f: f64, a: f64, s: f64,
-            p_1: f64, p_2: f64, p_3: f64,
-            q_1: f64, q_2: f64
+        pub struct SinhApprParams {{
+            pub a: f64,
+            pub s: f64,
+            pub p_1: f64,
+            pub p_2: f64,
+            pub p_3: f64,
+            pub q_1: f64,
+            pub q_2: f64,
+        }}
+
+        pub fn sinh_approx_lt5_inner(
+            f: f64, args: SinhApprParams
         ) -> f64 {{
-            let f_min_a = f - a;
+            let f_min_a = f - args.a;
             let f_min_a_sq = f_min_a * f_min_a;
             let f_min_a_cu = f_min_a * f_min_a_sq;
 
             let numerator = 
-                s + 
-                p_1 * f_min_a + 
-                p_2 * f_min_a_sq + 
-                p_3 * f_min_a_cu;
+                args.s + 
+                args.p_1 * f_min_a + 
+                args.p_2 * f_min_a_sq + 
+                args.p_3 * f_min_a_cu;
             
             let denominator =
                 1.0 + 
-                q_1 * f_min_a + 
-                q_2 * f_min_a_sq;
+                args.q_1 * f_min_a + 
+                args.q_2 * f_min_a_sq;
 
             return numerator / denominator;
         }}    
 
         /// Approximates the sinh(F) function for F in the interval [0, 5).
         pub fn sinh_approx_lt5(f: f64) -> f64 {{
+            sinh_approx_lt5_inner(f, get_sinh_approx_params(f))
+        }}
+
+        /// Returns the parameters for the sinh approximation for the given point.
+        pub fn get_sinh_approx_params(f: f64) -> SinhApprParams {{
         ",
     );
 
@@ -119,16 +132,20 @@ fn generate_sinh_approximator() -> String {
 
         code += format!(
             r"if f < {cutoff} {{
-                return sinh_approx_lt5_inner(f,
-                    {a:.80}, {s:.80},
-                    {p_1:.80}, {p_2:.80}, {p_3:.80},
-                    {q_1:.80}, {q_2:.80}
-                );
+                return SinhApprParams {{
+                    a: {a:.80}, s: {s:.80},
+                    p_1: {p_1:.80}, p_2: {p_2:.80}, p_3: {p_3:.80},
+                    q_1: {q_1:.80}, q_2: {q_2:.80}
+                }};
             }} else "
         ).as_str();
     }
 
     code += "{ unreachable!(); } }";
+    code += format!(
+        "pub const SINH_5: f64 = {};",
+        5.0_f64.sinh()
+    ).as_str();
 
     return code;
 }
