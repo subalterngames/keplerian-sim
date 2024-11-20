@@ -593,11 +593,17 @@ fn test_sinh_approx_lt5() {
     const OUTPUT_CSV_PATH: &str = "out/test_sinh_approx_lt5.csv";
     const GRANULARITY: f64 = 0.001;
     const ITERATIONS: usize = (5.0f64 / GRANULARITY) as usize;
-    const MAX_ACCEPTABLE_DIFF: f64 = 1e-6;
+    const MAX_ACCEPTABLE_DIFF: f64 = 1e-5;
+    // The paper says that the relative error for
+    // F in [0, 5) is "significantly small", saying
+    // that its maximum is around 5.14e-8. It is unclear
+    // whether this is using infinite precision or double precision.
+    const MAX_ACCEPTABLE_ERR: f64 = 6e-8;
 
     let mut approx_data = Vec::with_capacity(ITERATIONS);
     let mut real_data = Vec::with_capacity(ITERATIONS);
     let mut diff_data = Vec::with_capacity(ITERATIONS);
+    let mut err_data = Vec::with_capacity(ITERATIONS);
 
     let iterator = 
         (0..ITERATIONS).map(|i| i as f64 * GRANULARITY);
@@ -607,24 +613,27 @@ fn test_sinh_approx_lt5() {
         let real = x.sinh();
 
         let diff = (approx - real).abs();
+        let relative_err = diff / real;
 
         approx_data.push(approx);
         real_data.push(real);
         diff_data.push(diff);
-
-        // assert!(
-        //     diff < 1e1,
-        //     "Approx of sinh strayed too far at x={x} \
-        //     (approx={approx}, real={real}), with distance {diff}"
-        // );
+        err_data.push(relative_err);
     }
 
     let mut csv = String::new();
 
-    csv += "x,approx,real,diff\n";
+    csv += "x,approx,real,diff,err\n";
 
     for i in 0..ITERATIONS {
-        csv += &format!("{},{},{},{}\n", i as f64 * GRANULARITY, approx_data[i], real_data[i], diff_data[i]);
+        csv += &format!(
+            "{x},{approx},{real},{diff},{err}\n",
+            x = i as f64 * GRANULARITY,
+            approx = approx_data[i],
+            real = real_data[i],
+            diff = diff_data[i],
+            err = err_data[i],
+        );
     }
 
     let _ = fs::write(OUTPUT_CSV_PATH, csv)
@@ -640,6 +649,16 @@ fn test_sinh_approx_lt5() {
             approx = approx_data[i],
             real = real_data[i],
             diff = diff_data[i]
+        );
+        assert!(
+            real_data[i] == 0.0 || err_data[i] < MAX_ACCEPTABLE_ERR,
+            "Approx of sinh strayed too far at x={x} \n\
+            (approx={approx}, real={real}), with error {err}\n\n\
+            A CSV file has been written to '{OUTPUT_CSV_PATH}'",
+            x = i as f64 * GRANULARITY,
+            approx = approx_data[i],
+            real = real_data[i],
+            err = err_data[i],
         );
     }
 }

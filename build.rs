@@ -60,11 +60,11 @@ fn generate_sinh_approximator() -> String {
         #![allow(dead_code)]
 
         fn sinh_approx_lt5_inner(
-            f: f64, s: f64,
+            f: f64, a: f64, s: f64,
             p_1: f64, p_2: f64, p_3: f64,
             q_1: f64, q_2: f64
         ) -> f64 {{
-            let f_min_a = f - s;
+            let f_min_a = f - a;
             let f_min_a_sq = f_min_a * f_min_a;
             let f_min_a_cu = f_min_a * f_min_a_sq;
 
@@ -93,7 +93,7 @@ fn generate_sinh_approximator() -> String {
         //   (1 + q_1(F - a) + q_2(F - a)^2)
         //
         //...where:
-        // a = the point to approximate near (`near_value`)
+        // a = the point to approximate near
         // s = sinh(a)
         // c = cosh(a)
         // d_1 = c^2 + 3
@@ -120,7 +120,7 @@ fn generate_sinh_approximator() -> String {
         code += format!(
             r"if f < {cutoff} {{
                 return sinh_approx_lt5_inner(f,
-                    {s:.80},
+                    {a:.80}, {s:.80},
                     {p_1:.80}, {p_2:.80}, {p_3:.80},
                     {q_1:.80}, {q_2:.80}
                 );
