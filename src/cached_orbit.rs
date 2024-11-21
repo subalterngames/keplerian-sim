@@ -1,14 +1,5 @@
 use crate::{
-    ApoapsisSetterError,
-    CompactOrbit,
-    Matrix3x2,
-    OrbitTrait,
-    keplers_equation,
-    keplers_equation_derivative,
-    keplers_equation_second_derivative,
-    keplers_equation_hyperbolic,
-    keplers_equation_hyperbolic_derivative,
-    keplers_equation_hyperbolic_second_derivative
+    keplers_equation, keplers_equation_derivative, keplers_equation_hyperbolic, keplers_equation_hyperbolic_derivative, keplers_equation_hyperbolic_second_derivative, keplers_equation_second_derivative, solve_monotone_cubic, ApoapsisSetterError, CompactOrbit, Matrix3x2, OrbitTrait
 };
 use std::f64::consts::{PI, TAU};
 
@@ -354,9 +345,62 @@ impl Orbit {
     fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> f64 {
         let sign = mean_anomaly.signum();
         let mean_anomaly = mean_anomaly.abs();
+        const SINH_5: f64 = 74.20321057778875;
 
-        let mut eccentric_anomaly: f64 = {
-            // TODO
+        // (Paragraph after Eq. 5 in the aforementioned paper)
+        //   The [mean anomaly] interval [0, e_c sinh(5) - 5) can
+        //   be separated into fifteen subintervals corresponding to
+        //   those intervals of F in [0, 5), see Eq. (4).
+        if mean_anomaly < self.eccentricity * SINH_5 - 5.0 {
+            // We use the Pade approximation of sinh of order
+            // [3 / 2], in `crate::generated_sinh_approximator`.
+            // We can then rearrange the equation to a cubic
+            // equation in terms of (F - a) and solve it.
+            //
+            // To quote the paper:
+            //   Replacing sinh(F) in [the hyperbolic Kepler
+            //   equation] with its piecewise Pade approximation
+            //   defined in Eq. (4) [`crate::generated_sinh_approximator`]
+            //   yields:
+            //     e_c P(F) - F = M_h                          (6)
+            // 
+            //   Eq. (6) can be written as a cubic equation in u = F - a, as
+            //     (e_c p_3 - q_2)u^3 +
+            //     (e_c p_2 - (M_h + a)q_2 - q_1) u^2 +
+            //     (e_c p_1 - (M_h + a)q_1 - 1)u +
+            //     e_c s - M_h - a = 0                         (7)
+            //   
+            //   Solving Eq. (7) and picking the real root F = F_0 in the
+            //   corresponding subinterval results in an initial approximate
+            //   solution to [the hyperbolic Kepler equation].
+            //
+            // For context:
+            // - `e_c` is eccentricity
+            // - `p_*`, `q_*`, `a`, and `s` is derived from the Pade approximation
+            //   arguments, which can be retrieved using the
+            //   `generated_sinh_approximator::get_sinh_approx_params` function
+            // - `M_h` is the mean anomaly
+            // - `F` is the eccentric anomaly
+
+            use crate::generated_sinh_approximator::get_sinh_approx_params;
+
+            let params = get_sinh_approx_params(mean_anomaly);
+
+            // We first get the value of each coefficient in the cubic equation:
+            // Au^3 + Bu^2 + Cu + D = 0
+            let mean_anom_plus_a = mean_anomaly + params.a;
+            let coeff_a = self.eccentricity * params.p_3 - params.q_2;
+            let coeff_b = self.eccentricity * params.p_2 - mean_anom_plus_a * params.q_2 - params.q_1;
+            let coeff_c = self.eccentricity * params.p_1 - mean_anom_plus_a * params.q_1 - 1.0;
+            let coeff_d = self.eccentricity * params.s - mean_anomaly - params.a;
+
+            // Then we solve it to get the value of u = F - a
+            let u = solve_monotone_cubic(coeff_a, coeff_b, coeff_c, coeff_d);
+
+            return u + params.a;
+            // TODO: add tests
+        } else {
+            // TODO: implement for F predicted to be more than 5
             todo!();
         }
     }

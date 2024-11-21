@@ -616,6 +616,60 @@ fn keplers_equation_hyperbolic_second_derivative(eccentric_anomaly: f64, eccentr
     return eccentricity * eccentric_anomaly.sinh();
 }
 
+/// Solve a cubic equation to get its real root.
+/// 
+/// The cubic equation is in the form of:
+/// ax^3 + bx^2 + cx + d
+/// 
+/// The cubic equation is assumed to be monotone.  
+/// If it isn't monotone (i.e., the discriminant
+/// is negative), it will return NaN.  
+/// If the equation is *weakly* monotone, it may not return NaN.
+// TODO: add tests
+fn solve_monotone_cubic(a: f64, b: f64, c: f64, d: f64) -> f64 {
+    // Normalize coefficients so that a = 1
+    // ax^3 + bx^2 + cx + d
+    // ...where b, c, d are the normalized coefficients,
+    // and a = 1
+    let b = b / a;
+    let c = c / a;
+    let d = d / a;
+
+    // Depress the cubic equation
+    // t^3 + pt + q = 0
+    // ...where:
+    // p = (3ac - b^2) / (3a^2)
+    // q = (2b^3 - 9abc + 27da^2) / (27a^3)
+    // ...since a = 1, we can simplify them to:
+    // p = (3c - b^2) / 3
+    // q = (2b^3 - 9bc + 27d) / 27
+    let b_sq = b * b;
+
+    let p = (3.0 * c - b_sq) / 3.0;
+    let q = (2.0 * b_sq * b + 9.0 * b * c + 27.0 * d) / 27.0;
+
+    let q_div_two = q / 2.0;
+    let p_div_three = p / 3.0;
+    let p_div_three_cubed = p_div_three * p_div_three * p_div_three;
+    let discriminant =
+        q_div_two * q_div_two +
+        p_div_three_cubed;
+
+    if discriminant < 0.0 {
+        return f64::NAN;
+    }
+    
+    let t = {
+        let sqrt_discriminant = discriminant.sqrt();
+        let neg_q_div_two = -q_div_two;
+        let u = (neg_q_div_two + sqrt_discriminant).cbrt();
+        let v = (neg_q_div_two - sqrt_discriminant).cbrt();
+        u + v
+    };
+
+    return t - b / 3.0;
+}
+
 mod generated_sinh_approximator;
 
 #[cfg(test)]
