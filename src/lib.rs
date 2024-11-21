@@ -623,9 +623,8 @@ fn keplers_equation_hyperbolic_second_derivative(eccentric_anomaly: f64, eccentr
 /// 
 /// The cubic equation is assumed to be monotone.  
 /// If it isn't monotone (i.e., the discriminant
-/// is negative), it will return NaN.  
-/// If the equation is *weakly* monotone, it may not return NaN.
-// TODO: add tests
+/// is negative), it may return an incorrect value
+/// or NaN.
 fn solve_monotone_cubic(a: f64, b: f64, c: f64, d: f64) -> f64 {
     // Normalize coefficients so that a = 1
     // ax^3 + bx^2 + cx + d
@@ -646,7 +645,7 @@ fn solve_monotone_cubic(a: f64, b: f64, c: f64, d: f64) -> f64 {
     let b_sq = b * b;
 
     let p = (3.0 * c - b_sq) / 3.0;
-    let q = (2.0 * b_sq * b + 9.0 * b * c + 27.0 * d) / 27.0;
+    let q = (2.0 * b_sq * b - 9.0 * b * c + 27.0 * d) / 27.0;
 
     let q_div_two = q / 2.0;
     let p_div_three = p / 3.0;
@@ -656,6 +655,7 @@ fn solve_monotone_cubic(a: f64, b: f64, c: f64, d: f64) -> f64 {
         p_div_three_cubed;
 
     if discriminant < 0.0 {
+        // Function is not monotone
         return f64::NAN;
     }
     
@@ -667,6 +667,8 @@ fn solve_monotone_cubic(a: f64, b: f64, c: f64, d: f64) -> f64 {
         u + v
     };
 
+    // x_i = t_i - b / 3a
+    // here, a = 1
     return t - b / 3.0;
 }
 

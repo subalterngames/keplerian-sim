@@ -662,3 +662,33 @@ fn test_sinh_approx_lt5() {
         );
     }
 }
+
+mod monotone_cubic_solver {
+    use crate::solve_monotone_cubic;
+
+    #[test]
+    fn test_monotone_increasing() {
+        // x^3 + 3x^2 + 3x + 1 = 0
+        // Monotonic increasing, one real root
+        let root = solve_monotone_cubic(1.0, 3.0, 3.0, 1.0);
+        let expected = -1.0; // Root is exactly -1
+        assert!((root - expected).abs() < 1e-6, "Expected root close to -1, got {root}");
+    }
+
+    #[test]
+    fn test_edge_case_triple_root() {
+        // x^3 = 0
+        // Real root: x = 0
+        let root = solve_monotone_cubic(1.0, 0.0, 0.0, 0.0);
+        assert!((root - 0.0).abs() < 1e-6, "Expected root close to 0, got {root}");
+    }
+
+    #[test]
+    fn test_large_coefficients() {
+        // 1000x^3 - 3000x^2 + 3000x - 1000 = 0
+        // Should handle large coefficients accurately
+        let root = solve_monotone_cubic(1000.0, -3000.0, 3000.0, -1000.0);
+        let expected = 1.0; // Root is exactly 1
+        assert!((root - expected).abs() < 1e-6, "Expected root close to 1, got {root}");
+    }
+}
