@@ -1,5 +1,15 @@
 use crate::{
-    keplers_equation, keplers_equation_derivative, keplers_equation_hyperbolic, keplers_equation_hyperbolic_derivative, keplers_equation_hyperbolic_second_derivative, keplers_equation_second_derivative, solve_monotone_cubic, ApoapsisSetterError, CompactOrbit, Matrix3x2, OrbitTrait
+    keplers_equation,
+    keplers_equation_derivative,
+    keplers_equation_hyperbolic,
+    keplers_equation_hyperbolic_derivative,
+    keplers_equation_hyperbolic_second_derivative,
+    keplers_equation_second_derivative,
+    solve_monotone_cubic,
+    ApoapsisSetterError,
+    CompactOrbit,
+    Matrix3x2,
+    OrbitTrait
 };
 use std::f64::consts::{PI, TAU};
 
@@ -342,6 +352,7 @@ impl Orbit {
     /// we apply a piecewise Pade approximation to establish an initial
     /// approximate solution of HKE. For the infinite interval, an analytical
     /// initial approximate solution is constructed."
+    // TODO: add tests
     fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> f64 {
         let sign = mean_anomaly.signum();
         let mean_anomaly = mean_anomaly.abs();
@@ -351,7 +362,7 @@ impl Orbit {
         //   The [mean anomaly] interval [0, e_c sinh(5) - 5) can
         //   be separated into fifteen subintervals corresponding to
         //   those intervals of F in [0, 5), see Eq. (4).
-        if mean_anomaly < self.eccentricity * SINH_5 - 5.0 {
+        return sign * if mean_anomaly < self.eccentricity * SINH_5 - 5.0 {
             // We use the Pade approximation of sinh of order
             // [3 / 2], in `crate::generated_sinh_approximator`.
             // We can then rearrange the equation to a cubic
@@ -397,11 +408,90 @@ impl Orbit {
             // Then we solve it to get the value of u = F - a
             let u = solve_monotone_cubic(coeff_a, coeff_b, coeff_c, coeff_d);
 
-            return u + params.a;
-            // TODO: add tests
+            u + params.a
         } else {
-            // TODO: implement for F predicted to be more than 5
-            todo!();
+            // Equation 13
+            // A *very* rough guess, with an error that may exceed 1%.
+            let rough_guess = (2.0 * mean_anomaly / self.eccentricity).ln();
+
+            /*
+            A Schröder iteration is performed to create a better guess.
+            ...Apparently it's not a well-known thing, but the aforementioned paper
+            referenced this other paper about Schröder iterations:
+            https://doi.org/10.1016/j.cam.2019.02.035
+            
+            To do the Schröder iteration, we need to compute a delta value
+            to be added to the rough guess. Part of Equation 15 from the paper is below.
+            
+            delta = (
+                    6 * [e_c^2 / (4 * M_h) + F_a] / (e_c * c_a - 1) +
+                    3 * [e_c * s_a / (e_c * c_a - 1)]{[e_c^2 / (4 * M_h) + F_a] / (e_c * c_a - 1)}^2
+                ) / (
+                    6 +
+                    6 * [e_c * s_a / (e_c * c_a - 1)]{[e_c^2 / (4 * M_h) + F_a] / (e_c * c_a - 1)} +
+                    [e_c * c_a / (e_c * c_a - 1)]{[e_c^2 / (4 * M_h) + F_a] / (e_c * c_a - 1)}^2
+                )
+            ...where:
+            e_c = eccentricity
+            F_a = rough guess
+            c_a = cosh(F_a) = 0.5 * [2 * M_h / e_c + e_c / (2 * M_h)],
+            s_a = sinh(F_a) = 0.5 * [2 * M_h / e_c - e_c / (2 * M_h)]
+            
+            Although the equation may look intimidating, there are a lot of repeated values.
+            We can simplify the equation by extracting the repeated values.
+            
+            Let:
+                alpha = e_c^2 / (4 * M_h) + F_a
+                beta  = 1 / (e_c * c_a - 1)
+                gamma = alpha / beta
+            
+            The equation gets simplified into:
+            
+            delta = (
+                    6 * alpha * beta +
+                    3 * e_c * s_a * beta * gamma^2
+                ) / (
+                    6 +
+                    6 * e_c * s_a * beta * gamma +
+                    e_c * c_a * beta * gamma^2
+                )
+
+            Then we can refine the rough guess into the initial guess:
+            F_0 = F_a + delta
+            */
+
+            let quarter_mean_anomaly = 0.25 * mean_anomaly;
+
+            let (c_a, s_a) = {
+                // c_a and s_a has a lot of repeated values, so we can
+                // optimize by calculating them together.
+                // c_a, s_a = 0.5 * [2 * M_h / e_c +- e_c / (2 * M_h)]
+                // c_a, s_a = M_h / e_c +- e_c / (4 * M_h)
+                //
+                // define "left"  = M_h / e_c
+                // define "right" = e_c / (4 * M_h)
+
+                let left = mean_anomaly / self.eccentricity;
+                let right = self.eccentricity * quarter_mean_anomaly;
+
+                (left + right, left - right)
+            };
+
+            let alpha = self.eccentricity * self.eccentricity * quarter_mean_anomaly + rough_guess;
+            let beta = (self.eccentricity * c_a - 1.0).recip();
+            let gamma = alpha / beta;
+            let gamma_sq = gamma * gamma;
+
+            let delta = (
+                6.0 * alpha * beta +
+                3.0 * self.eccentricity * s_a * beta * gamma_sq
+            ) / (
+                6.0 +
+                6.0 * self.eccentricity * s_a * beta * gamma +
+                self.eccentricity * c_a * beta * gamma_sq
+            );
+
+            rough_guess + delta
         }
     }
 
@@ -433,6 +523,43 @@ impl Orbit {
             let next_value = eccentric_anomaly - f / denominator;
 
             let diff = (eccentric_anomaly - next_value).abs();
+            eccentric_anomaly = next_value;
+
+            if diff < target_accuracy {
+                break;
+            }
+        }
+
+        return eccentric_anomaly;
+    }
+
+    /// Get the eccentric anomaly of an orbit.
+    /// 
+    /// EXPERIMENTAL: This function is not yet stable and may not work properly yet.
+    #[doc(hidden)]
+    pub fn get_eccentric_anomaly_hyperbolic_experimental(&self, mean_anomaly: f64) -> f64 {
+        let target_accuracy = 1e-12;
+        let mut eccentric_anomaly = self.get_approx_hyp_ecc_anomaly(mean_anomaly);
+
+        for _ in 0..NUMERIC_MAX_ITERS {
+            // NEWTON'S METHOD
+            // https://en.wikipedia.org/wiki/Newton%27s_method
+            // x_n+1 = x_n - f(x_n) / f'(x_n)
+
+            let f = keplers_equation_hyperbolic(mean_anomaly, eccentric_anomaly, self.eccentricity);
+            let fp = keplers_equation_hyperbolic_derivative(eccentric_anomaly, self.eccentricity);
+
+            if fp.abs() < 1e-30 || !fp.is_finite() {
+                // dangerously close to div-by-zero, break out
+                #[cfg(debug_assertions)]
+                eprintln!("Hyperbolic eccentric anomaly solver: derivative is too small or not finite");
+                break;
+            }
+
+            let next_value = eccentric_anomaly - f / fp;
+
+            let diff = (eccentric_anomaly - next_value).abs();
+
             eccentric_anomaly = next_value;
 
             if diff < target_accuracy {

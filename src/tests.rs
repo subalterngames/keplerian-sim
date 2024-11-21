@@ -663,6 +663,133 @@ fn test_sinh_approx_lt5() {
     }
 }
 
+#[test]
+fn test_hyperbolic_eccentric_anomaly_experimental() {
+    let orbits = [
+        (
+            "Normal parabolic",
+            Orbit::new(
+                1.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Normal hyperbolic",
+            Orbit::new(
+                1.5,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Extreme hyperbolic",
+            Orbit::new(
+                100.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            )
+        ),
+        (
+            "Tilted parabolic",
+            Orbit::new(
+                1.0,
+                1.0,
+                2.848915582093,
+                1.9520945821,
+                2.1834987325,
+                0.69482153021
+            )
+        ),
+        (
+            "Tilted hyperbolic",
+            Orbit::new(
+                1.5,
+                1.0,
+                2.848915582093,
+                1.9520945821,
+                2.1834987325,
+                0.69482153021
+            )
+        ),
+        (
+            "Tilted extreme hyperbolic",
+            Orbit::new(
+                100.0,
+                1.0,
+                2.848915582093,
+                1.9520945821,
+                2.1834987325,
+                0.69482153021
+            )
+        ),
+    ];
+
+    struct Situation {
+        orbit_type: &'static str,
+        iteration_num: usize,
+        max_deviation: f64,
+    }
+
+    let mut situation_at_max_deviation = Situation {
+        orbit_type: "",
+        iteration_num: 0,
+        max_deviation: 0.0,
+    };
+
+    const ORBIT_POLL_ANGLES: usize = 65536;
+
+    for (what, orbit) in orbits.iter() {
+        for i in 0..ORBIT_POLL_ANGLES {
+            let angle =
+                (i as f64 - 0.5 * ORBIT_POLL_ANGLES as f64) * TAU /
+                (ORBIT_POLL_ANGLES as f64);
+            
+            let angle = 4.0 * angle.powi(3); // Test a wider range of angles
+            
+            let ground_truth = orbit.get_eccentric_anomaly(angle);
+            let experimental = orbit.get_eccentric_anomaly_hyperbolic_experimental(angle);
+            let deviation = (ground_truth - experimental).abs();
+
+            assert!(
+                deviation < 1e-6,
+                "Experimental hyp. ecc. anom. deviates too much from ground truth \
+                at iteration {i}\n\
+                ... Orbit type: {what}\n\
+                ... Ground truth: {ground_truth}\n\
+                ... Experimental: {experimental}\n",
+            );
+
+            if deviation > situation_at_max_deviation.max_deviation {
+                situation_at_max_deviation = Situation {
+                    orbit_type: what,
+                    iteration_num: i,
+                    max_deviation: deviation,
+                };
+            }
+        }
+    }
+
+    println!(
+        "Test success!\n\
+        Max deviation: {:?}\n\
+        ... Orbit type: {}\n\
+        ... Iteration number: {}",
+        situation_at_max_deviation.max_deviation,
+        situation_at_max_deviation.orbit_type,
+        situation_at_max_deviation.iteration_num,
+    );
+}
+
 mod monotone_cubic_solver {
     use crate::solve_monotone_cubic;
 
