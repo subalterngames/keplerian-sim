@@ -352,7 +352,6 @@ impl Orbit {
     /// we apply a piecewise Pade approximation to establish an initial
     /// approximate solution of HKE. For the infinite interval, an analytical
     /// initial approximate solution is constructed."
-    // TODO: add tests
     fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> f64 {
         let sign = mean_anomaly.signum();
         let mean_anomaly = mean_anomaly.abs();
@@ -415,7 +414,8 @@ impl Orbit {
             let rough_guess = (2.0 * mean_anomaly / self.eccentricity).ln();
 
             /*
-            A Schröder iteration is performed to create a better guess.
+            A fourth-order Schröder iteration of the second kind
+            is performed to create a better guess.
             ...Apparently it's not a well-known thing, but the aforementioned paper
             referenced this other paper about Schröder iterations:
             https://doi.org/10.1016/j.cam.2019.02.035
@@ -477,7 +477,9 @@ impl Orbit {
                 (left + right, left - right)
             };
 
-            let alpha = self.eccentricity * self.eccentricity * quarter_mean_anomaly + rough_guess;
+            let alpha =
+                self.eccentricity * self.eccentricity *
+                quarter_mean_anomaly + rough_guess;
             let beta = (self.eccentricity * c_a - 1.0).recip();
             let gamma = alpha / beta;
             let gamma_sq = gamma * gamma;
@@ -505,7 +507,6 @@ impl Orbit {
             // HALLEY'S METHOD
             // https://en.wikipedia.org/wiki/Halley%27s_method
             // x_n+1 = x_n - f(x_n) / (f'(x_n) - f(x_n) * f''(x_n) / (2 * f'(x_n)))
-            // TODO: Find a better numerical method for this
 
             let f = keplers_equation_hyperbolic(mean_anomaly, eccentric_anomaly, self.eccentricity);
             let fp = keplers_equation_hyperbolic_derivative(eccentric_anomaly, self.eccentricity);
@@ -536,38 +537,78 @@ impl Orbit {
     /// Get the eccentric anomaly of an orbit.
     /// 
     /// EXPERIMENTAL: This function is not yet stable and may not work properly yet.
-    #[doc(hidden)]
+    /// 
+    /// From the paper:  
+    /// "A new method for solving the hyperbolic Kepler equation"  
+    /// by Baisheng Wu et al.  
     pub fn get_eccentric_anomaly_hyperbolic_experimental(&self, mean_anomaly: f64) -> f64 {
-        let target_accuracy = 1e-12;
-        let mut eccentric_anomaly = self.get_approx_hyp_ecc_anomaly(mean_anomaly);
+        let initial_guess = self.get_approx_hyp_ecc_anomaly(mean_anomaly);
 
-        for _ in 0..NUMERIC_MAX_ITERS {
-            // NEWTON'S METHOD
-            // https://en.wikipedia.org/wiki/Newton%27s_method
-            // x_n+1 = x_n - f(x_n) / f'(x_n)
+        /*
+        Do a fourth-order Schröder iteration of the second kind
 
-            let f = keplers_equation_hyperbolic(mean_anomaly, eccentric_anomaly, self.eccentricity);
-            let fp = keplers_equation_hyperbolic_derivative(eccentric_anomaly, self.eccentricity);
+        Equation 25 of "A new method for solving the hyperbolic Kepler equation"
+        by Baisheng Wu et al.
+        Slightly restructured:
 
-            if fp.abs() < 1e-30 || !fp.is_finite() {
-                // dangerously close to div-by-zero, break out
-                #[cfg(debug_assertions)]
-                eprintln!("Hyperbolic eccentric anomaly solver: derivative is too small or not finite");
-                break;
-            }
+        F_1^(4) = F_0 - (
+            (6h/h' - 3h^2 h'' / h'^3) /
+            (6 - 6h h'' / h'^2 + h^2 h'''/h'^3)
+        )
 
-            let next_value = eccentric_anomaly - f / fp;
+        ...where:
+        e_c = eccentricity
+        F_0 = initial guess
+        h   = e_c sinh(F_0) - F_0 - M_h
+        h'  = e_c cosh(F_0) - 1
+        h'' = e_c sinh(F_0)
+            = h + F_0 + M_h
+        h'''= h' + 1
 
-            let diff = (eccentric_anomaly - next_value).abs();
+        Rearranging for efficiency:
+        h'''= e_c cosh(F_0)
+        h'  = h''' - 1
+        h'' = e_c sinh(F_0)
+        h   = h'' - F_0 - M_h
 
-            eccentric_anomaly = next_value;
+        Factoring out 1/h':
 
-            if diff < target_accuracy {
-                break;
-            }
+        let r = 1 / h'
+
+        F_1^(4) = F_0 - (
+            (6hr - 3h^2 h'' r^3) / 
+            (6 - 6h h'' r^2 + h^2 h''' r^3)
+        )
+
+        Since sinh and cosh are very similar algebraically,
+        it may be better to calculate them together.
+
+        Paper about Schröder iterations:
+        https://doi.org/10.1016/j.cam.2019.02.035
+         */
+        
+        let hppp = self.eccentricity * initial_guess.cosh();
+        let hp = hppp - 1.0;
+        let hpp = self.eccentricity * initial_guess.sinh();
+        let h = hpp - initial_guess - mean_anomaly;
+        
+        let r = hp.recip();
+        let r_sq = r * r;
+        let r_cb = r_sq * r;
+        
+        let h_sq = h * h;
+
+        let delta =
+            (6.0 * h * r - 3.0 * h_sq * hpp * r_cb) /
+            (6.0 - 6.0 * h * hpp * r_sq + h_sq * hppp * r_cb);
+
+        if !delta.is_finite() {
+            #[cfg(debug_assertions)]
+            eprintln!("Hyperbolic eccentric anomaly solver: delta is not finite");
+            return initial_guess;
         }
 
-        return eccentric_anomaly;
+        return initial_guess - delta;
     }
 }
 

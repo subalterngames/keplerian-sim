@@ -763,7 +763,7 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
             assert!(
                 deviation < 1e-6,
                 "Experimental hyp. ecc. anom. deviates too much from ground truth \
-                at iteration {i}\n\
+                at iteration {i}, {angle} rad\n\
                 ... Orbit type: {what}\n\
                 ... Ground truth: {ground_truth}\n\
                 ... Experimental: {experimental}\n",
