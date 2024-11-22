@@ -737,13 +737,17 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
     struct Situation {
         orbit_type: &'static str,
         iteration_num: usize,
+        angle: f64,
         max_deviation: f64,
+        value: f64,
     }
 
     let mut situation_at_max_deviation = Situation {
         orbit_type: "",
         iteration_num: 0,
+        angle: 0.0,
         max_deviation: 0.0,
+        value: 0.0,
     };
 
     const ORBIT_POLL_ANGLES: usize = 65536;
@@ -756,28 +760,44 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
             
             let angle = 4.0 * angle.powi(3); // Test a wider range of angles
             
-            let ground_truth = orbit.get_eccentric_anomaly(angle);
-            let experimental = orbit.get_eccentric_anomaly_hyperbolic_experimental(angle);
-            let deviation = (ground_truth - experimental).abs();
-
-            assert!(
-                deviation < 1e-6,
-                "Experimental hyp. ecc. anom. deviates too much from ground truth \
-                at iteration {i}, {angle} rad\n\
-                ... Orbit type: {what}\n\
-                ... Ground truth: {ground_truth}\n\
-                ... Experimental: {experimental}\n",
-            );
+            let ecc_anom =
+                orbit.get_eccentric_anomaly_hyperbolic_experimental(
+                    angle
+                );
+                
+            // When value is exact, `e_c sinh(F) - F = M_h`
+            // We want to find out how far off it is
+            // Rearrange the equation:
+            // `e_c sinh(F) - F - M_h = 0`
+            let deviation =
+                orbit.get_eccentricity() * ecc_anom.sinh()
+                - ecc_anom - angle;
 
             if deviation > situation_at_max_deviation.max_deviation {
                 situation_at_max_deviation = Situation {
                     orbit_type: what,
                     iteration_num: i,
+                    angle,
                     max_deviation: deviation,
+                    value: ecc_anom
                 };
             }
         }
     }
+
+    assert!(
+        situation_at_max_deviation.max_deviation < 1e-6,
+        "Experimental hyp. ecc. anom. deviates too much from stable amount \
+        at iteration {}, {} rad\n\
+        ... Orbit type: {}\n\
+        ... Deviation: {}\n\
+        ... Value: {}\n",
+        situation_at_max_deviation.iteration_num,
+        situation_at_max_deviation.angle,
+        situation_at_max_deviation.orbit_type,
+        situation_at_max_deviation.max_deviation,
+        situation_at_max_deviation.value
+    );
 
     println!(
         "Test success!\n\

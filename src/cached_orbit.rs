@@ -11,7 +11,7 @@ use crate::{
     Matrix3x2,
     OrbitTrait
 };
-use std::f64::consts::{PI, TAU};
+use std::f64::{consts::{PI, TAU}, NAN};
 
 /// A struct representing a Keplerian orbit with some cached values.
 /// 
@@ -544,6 +544,7 @@ impl Orbit {
     pub fn get_eccentric_anomaly_hyperbolic_experimental(&self, mean_anomaly: f64) -> f64 {
         let initial_guess = self.get_approx_hyp_ecc_anomaly(mean_anomaly);
 
+        // return initial_guess; // DEBUG
         /*
         Do a fourth-order Schröder iteration of the second kind
 
