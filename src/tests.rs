@@ -663,6 +663,80 @@ fn test_sinh_approx_lt5() {
     }
 }
 
+/// Use binary search to get the real hyperbolic eccentric anomaly instead of Newton's method.
+/// 
+/// We can do this because the hyperbolic KE is a monotonic function.
+fn slowly_get_real_hyperbolic_eccentric_anomaly(orbit: &Orbit, mean_anomaly: f64) -> f64 {
+    use crate::keplers_equation_hyperbolic as ke;
+    let eccentricity = orbit.get_eccentricity();
+
+    let mut low = -1.0;
+    let mut high = 1.0;
+
+    {
+        // Expand bounds until ke(low) < 0 and ke(high) > 0
+        loop {
+            let low_value = ke(mean_anomaly, low, eccentricity);
+
+            if low_value < 0.0 {
+                break;
+            }
+
+            low *= 2.0;
+        }
+
+        loop {
+            let high_value = ke(mean_anomaly, high, eccentricity);
+            
+            if high_value > 0.0 {
+                break;
+            }
+
+            high *= 2.0;
+        }
+    }
+
+    let mut iters = 0u64;
+    let max_expected_iters = 4096u64;
+
+    loop {
+        iters += 1;
+
+        let midpoint = 0.5 * (low + high);
+        let midvalue = ke(mean_anomaly, midpoint, eccentricity);
+
+        if midvalue > 0.0 {
+            high = midpoint;
+        } else {
+            low = midpoint;
+        }
+
+        let midpoint = 0.5 * (low + high);
+
+        if midpoint == 0.0 || midpoint == low || midpoint == high {
+            if midvalue.abs() > 1e-6 {
+                panic!("Binary search failed to converge to a solution.\n\
+                ... Orbit: {orbit:?}\n\
+                ... Mean anomaly: {mean_anomaly}\n\
+                ... Low bound: {low}\n\
+                ... High bound: {high}\n\
+                ... Midpoint: {midpoint}\n\
+                ... Value: {midvalue}");
+            }
+
+            return midpoint;
+        }
+
+        if iters > max_expected_iters {
+            panic!("Too many iterations. There might be a error in the binary search algorithm.\n\
+            ... Orbit: {orbit:?}\n\
+            ... Mean anomaly: {mean_anomaly}\n\
+            ... Low bound: {low}\n\
+            ... High bound: {high}");
+        }
+    }
+}
+
 #[test]
 fn test_hyperbolic_eccentric_anomaly_experimental() {
     let orbits = [
@@ -738,16 +812,18 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
         orbit_type: &'static str,
         iteration_num: usize,
         angle: f64,
-        max_deviation: f64,
+        deviation: f64,
         value: f64,
+        expected: f64,
     }
 
     let mut situation_at_max_deviation = Situation {
         orbit_type: "",
         iteration_num: 0,
         angle: 0.0,
-        max_deviation: 0.0,
+        deviation: 0.0,
         value: 0.0,
+        expected: 0.0,
     };
 
     const ORBIT_POLL_ANGLES: usize = 65536;
@@ -764,39 +840,41 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
                 orbit.get_eccentric_anomaly_hyperbolic_experimental(
                     angle
                 );
-                
-            // When value is exact, `e_c sinh(F) - F = M_h`
-            // We want to find out how far off it is
-            // Rearrange the equation:
-            // `e_c sinh(F) - F - M_h = 0`
-            let deviation =
-                orbit.get_eccentricity() * ecc_anom.sinh()
-                - ecc_anom - angle;
 
-            if deviation > situation_at_max_deviation.max_deviation {
+            let expected = slowly_get_real_hyperbolic_eccentric_anomaly(
+                orbit,
+                angle
+            );
+                
+            let deviation = (ecc_anom - expected).abs();
+
+            if deviation > situation_at_max_deviation.deviation {
                 situation_at_max_deviation = Situation {
                     orbit_type: what,
                     iteration_num: i,
                     angle,
-                    max_deviation: deviation,
-                    value: ecc_anom
+                    deviation,
+                    value: ecc_anom,
+                    expected,
                 };
             }
         }
     }
 
     assert!(
-        situation_at_max_deviation.max_deviation < 1e-6,
+        situation_at_max_deviation.deviation < 1e-6,
         "Experimental hyp. ecc. anom. deviates too much from stable amount \
         at iteration {}, {} rad\n\
         ... Orbit type: {}\n\
         ... Deviation: {}\n\
-        ... Value: {}\n",
+        ... Value: {}\n\
+        ... Expected: {}",
         situation_at_max_deviation.iteration_num,
         situation_at_max_deviation.angle,
         situation_at_max_deviation.orbit_type,
-        situation_at_max_deviation.max_deviation,
-        situation_at_max_deviation.value
+        situation_at_max_deviation.deviation,
+        situation_at_max_deviation.value,
+        situation_at_max_deviation.expected,
     );
 
     println!(
@@ -804,7 +882,7 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
         Max deviation: {:?}\n\
         ... Orbit type: {}\n\
         ... Iteration number: {}",
-        situation_at_max_deviation.max_deviation,
+        situation_at_max_deviation.deviation,
         situation_at_max_deviation.orbit_type,
         situation_at_max_deviation.iteration_num,
     );

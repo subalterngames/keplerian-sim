@@ -604,8 +604,11 @@ impl Orbit {
             (6.0 - 6.0 * h * hpp * r_sq + h_sq * hppp * r_cb);
 
         if !delta.is_finite() {
-            #[cfg(debug_assertions)]
-            eprintln!("Hyperbolic eccentric anomaly solver: delta is not finite");
+            eprintln!(
+                "Hyperbolic eccentric anomaly solver: delta is not finite\n\
+                self: {self:?};\n\
+                mean anom: {mean_anomaly};\n"
+            );
             return initial_guess;
         }
 
