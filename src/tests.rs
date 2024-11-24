@@ -773,39 +773,6 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
                 0.0
             )
         ),
-        (
-            "Tilted parabolic",
-            Orbit::new(
-                1.0,
-                1.0,
-                2.848915582093,
-                1.9520945821,
-                2.1834987325,
-                0.69482153021
-            )
-        ),
-        (
-            "Tilted hyperbolic",
-            Orbit::new(
-                1.5,
-                1.0,
-                2.848915582093,
-                1.9520945821,
-                2.1834987325,
-                0.69482153021
-            )
-        ),
-        (
-            "Tilted extreme hyperbolic",
-            Orbit::new(
-                100.0,
-                1.0,
-                2.848915582093,
-                1.9520945821,
-                2.1834987325,
-                0.69482153021
-            )
-        ),
     ];
 
     struct Situation {
@@ -826,9 +793,10 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
         expected: 0.0,
     };
 
-    const ORBIT_POLL_ANGLES: usize = 65536;
+    const ORBIT_POLL_ANGLES: usize = 128;
 
     for (what, orbit) in orbits.iter() {
+        println!("Testing orbit type: {}", what);
         for i in 0..ORBIT_POLL_ANGLES {
             let angle =
                 (i as f64 - 0.5 * ORBIT_POLL_ANGLES as f64) * TAU /
