@@ -673,7 +673,7 @@ fn test_hyp_ecc_anom_approx_for_orbit(orbit: &Orbit) -> Vec<(f64, f64, f64)> {
     for i in 0..ORBIT_POLL_ANGLES {
         let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
         let angle = 4.0 * angle.powi(3); // Test a wider range of angles
-        let ecc_anom = orbit.get_approx_hyp_ecc_anomaly(angle).0;
+        let ecc_anom = orbit.get_approx_hyp_ecc_anomaly(angle);
 
         let expected = slowly_get_real_hyperbolic_eccentric_anomaly(orbit, angle);
 

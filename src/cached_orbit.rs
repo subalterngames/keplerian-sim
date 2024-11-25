@@ -354,7 +354,7 @@ impl Orbit {
     /// we apply a piecewise Pade approximation to establish an initial
     /// approximate solution of HKE. For the infinite interval, an analytical
     /// initial approximate solution is constructed."
-    pub fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> (f64, f64) {
+    pub fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> f64 {
         let sign = mean_anomaly.signum();
         let mean_anomaly = mean_anomaly.abs();
         const SINH_5: f64 = 74.20321057778875;
@@ -363,7 +363,7 @@ impl Orbit {
         //   The [mean anomaly] interval [0, e_c sinh(5) - 5) can
         //   be separated into fifteen subintervals corresponding to
         //   those intervals of F in [0, 5), see Eq. (4).
-        let (result, error) = if mean_anomaly < self.eccentricity * SINH_5 - 5.0 {
+        return sign * if mean_anomaly < self.eccentricity * SINH_5 - 5.0 {
             // We use the Pade approximation of sinh of order
             // [3 / 2], in `crate::generated_sinh_approximator`.
             // We can then rearrange the equation to a cubic
@@ -394,11 +394,7 @@ impl Orbit {
             // - `M_h` is the mean anomaly
             // - `F` is the eccentric anomaly
 
-            use crate::generated_sinh_approximator::{
-                get_sinh_approx_params,
-                sinh_approx_lt5
-            };
-
+            use crate::generated_sinh_approximator::get_sinh_approx_params;
             let params = get_sinh_approx_params(mean_anomaly);
 
             // We first get the value of each coefficient in the cubic equation:
@@ -411,23 +407,8 @@ impl Orbit {
 
             // Then we solve it to get the value of u = F - a
             let u = solve_monotone_cubic(coeff_a, coeff_b, coeff_c, coeff_d);
-            let guess = u + params.a;
             
-            // Equation 9:
-            // F - F_0 (approximately equals to) e_c[P(F_0) - sinh(F_0)] / (e_c cosh(F_0) - 1)
-            // where:
-            // F = the exact solution
-            // F_0 = the initial guess
-            // e_c = eccentricity
-            // P(F) = the Pade approximation of sinh(F)
-
-            let pade_approx = sinh_approx_lt5(guess);
-
-            let error =
-                self.eccentricity * (pade_approx - guess.sinh()) /
-                (self.eccentricity * guess.cosh() - 1.0);
-
-            (u + params.a, error)
+            u + params.a
         } else {
             // Equation 13
             // A *very* rough guess, with an error that may exceed 1%.
@@ -512,20 +493,8 @@ impl Orbit {
                 (self.eccentricity * c_a * beta) * gamma_sq
             );
 
-            let initial_guess = rough_guess + delta;
-
-            // For e_c in [1, 5] and F in [5, 10], the paper
-            // says the maximum relative error |F - F_0|/F is
-            // less than 3.74e-9.
-            // We will go with a more conservative 1e-8 and
-            // calculate the expected maximum error.
-
-            let error = 1e-8 * initial_guess.abs();
-
-            (initial_guess, error)
+            rough_guess + delta
         };
-
-        return (result * sign, error);
     }
 
     fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
@@ -573,68 +542,83 @@ impl Orbit {
     /// "A new method for solving the hyperbolic Kepler equation"  
     /// by Baisheng Wu et al.  
     pub fn get_eccentric_anomaly_hyperbolic_experimental(&self, mean_anomaly: f64) -> f64 {
-        use crate::keplers_equation_hyperbolic as ke;
-        let (initial_guess, error) = self.get_approx_hyp_ecc_anomaly(mean_anomaly);
+        let mut ecc_anom = self.get_approx_hyp_ecc_anomaly(mean_anomaly);
 
-        // Binary search!
-        let mut lower_bound = initial_guess - error;
-        let mut upper_bound = initial_guess + error;
+        /*
+        Do a fourth-order Schröder iteration of the second kind
 
-        // Expand the bounds if it doesn't include the root
-        {
-            let mut lower_value =
-                ke(mean_anomaly, lower_bound, self.eccentricity);
+        Equation 25 of "A new method for solving the hyperbolic Kepler equation"
+        by Baisheng Wu et al.
+        Slightly restructured:
 
-            while lower_value > 0.0 {
-                let midpoint = (lower_bound + upper_bound) / 2.0;
+        F_1^(4) = F_0 - (
+            (6h/h' - 3h^2 h'' / h'^3) /
+            (6 - 6h h'' / h'^2 + h^2 h'''/h'^3)
+        )
 
-                // make lower bound twice as far from midpoint
-                let cur_dist = midpoint - lower_bound;
-                lower_bound = midpoint - cur_dist * 2.0;
+        ...where:
+        e_c = eccentricity
+        F_0 = initial guess
+        h   = e_c sinh(F_0) - F_0 - M_h
+        h'  = e_c cosh(F_0) - 1
+        h'' = e_c sinh(F_0)
+            = h + F_0 + M_h
+        h'''= h' + 1
 
-                lower_value = ke(mean_anomaly, lower_bound, self.eccentricity);
+        Rearranging for efficiency:
+        h'''= e_c cosh(F_0)
+        h'  = h''' - 1
+        h'' = e_c sinh(F_0)
+        h   = h'' - F_0 - M_h
 
-                if lower_bound.is_infinite() {
-                    panic!("Lower bound is infinite");
-                }
-            }
-            
-            let mut upper_value =
-                ke(mean_anomaly, upper_bound, self.eccentricity);
+        Factoring out 1/h':
 
-            while upper_value < 0.0 {
-                let midpoint = (lower_bound + upper_bound) / 2.0;
+        let r = 1 / h'
 
-                // make upper bound twice as far from midpoint
-                let cur_dist = upper_bound - midpoint;
-                upper_bound = midpoint + cur_dist * 2.0;
+        F_1^(4) = F_0 - (
+            (6hr - 3h^2 h'' r^3) / 
+            (6 - 6h h'' r^2 + h^2 h''' r^3)
+        )
 
-                upper_value = ke(mean_anomaly, upper_bound, self.eccentricity);
+        Since sinh and cosh are very similar algebraically,
+        it may be better to calculate them together.
 
-                if upper_bound.is_infinite() {
-                    panic!("Upper bound is infinite");
-                }
-            }
-        }
+        Paper about Schröder iterations:
+        https://doi.org/10.1016/j.cam.2019.02.035
+         */
 
         for _ in 0..NUMERIC_MAX_ITERS {
-            let midpoint = (lower_bound + upper_bound) / 2.0;
-            let value = ke(mean_anomaly, midpoint, self.eccentricity);
+            let hppp = self.eccentricity * ecc_anom.cosh();
+            let hp = hppp - 1.0;
+            let hpp = self.eccentricity * ecc_anom.sinh();
+            let h = hpp - ecc_anom - mean_anomaly;
 
-            if value.abs() < 1e-9 {
-                return midpoint;
+            let h_sq = h * h;
+            let r = hp.recip();
+            let r_sq = r * r;
+            let r_cub = r_sq * r;
+
+            let denominator =
+                6.0 - 6.0 * h * hpp * r_sq + h_sq * hppp * r_cub;
+            
+            if denominator.abs() < 1e-30 || !denominator.is_finite() {
+                // dangerously close to div-by-zero, break out
+                #[cfg(debug_assertions)]
+                eprintln!("Hyperbolic eccentric anomaly solver: denominator is too small or not finite");
+                break;
             }
 
-            if value > 0.0 {
-                upper_bound = midpoint;
-            } else if value < 0.0 {
-                lower_bound = midpoint;
-            } else {
-                return midpoint;
+            let numerator = 6.0 * h * r - 3.0 * h_sq * hpp * r_cub;
+            let delta = numerator / denominator;
+
+            ecc_anom -= delta;
+
+            if delta.abs() < 1e-12 {
+                break;
             }
         }
-        
-        return (lower_bound + upper_bound) / 2.0;
+
+        return ecc_anom;
     }
 }
 
