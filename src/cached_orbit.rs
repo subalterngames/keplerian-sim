@@ -480,13 +480,25 @@ impl Orbit {
             F_0 = F_a + delta
             */
 
+            let s_a = rough_guess.sinh();
+            let c_a = rough_guess.cosh();
+
+            let alpha =
+                self.eccentricity * self.eccentricity /
+                (4.0 * mean_anomaly) + rough_guess;
+            
+            let beta = (self.eccentricity * c_a - 1.0).recip();
+
+            let gamma = alpha * beta;
+            let gamma_sq = gamma * gamma;
+
             let delta = (
-                6.0 * (self.eccentricity.powi(2) / (4.0 * mean_anomaly) + rough_guess) / (self.eccentricity * rough_guess.cosh() - 1.0) +
-                3.0 * (self.eccentricity * rough_guess.sinh() / (self.eccentricity * rough_guess.cosh() - 1.0)) * ((self.eccentricity.powi(2) / (4.0 * mean_anomaly) + rough_guess) / (self.eccentricity * rough_guess.cosh() - 1.0)).powi(2)
+                6.0 * alpha * beta +
+                3.0 * (self.eccentricity * s_a * beta) * gamma_sq
             ) / (
                 6.0 +
-                6.0 * (self.eccentricity * rough_guess.sinh() / (self.eccentricity * rough_guess.cosh() - 1.0)) * ((self.eccentricity.powi(2) / (4.0 * mean_anomaly) + rough_guess) / (self.eccentricity * rough_guess.cosh() - 1.0)) +
-                (self.eccentricity * rough_guess.cosh() / (self.eccentricity * rough_guess.cosh() - 1.0)) * ((self.eccentricity.powi(2) / (4.0 * mean_anomaly) + rough_guess) / (self.eccentricity * rough_guess.cosh() - 1.0)).powi(2)
+                6.0 * (self.eccentricity * s_a * beta) * gamma +
+                (self.eccentricity * c_a * beta) * gamma_sq
             );
 
             let initial_guess = rough_guess + delta;
