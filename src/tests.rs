@@ -811,6 +811,7 @@ fn test_hyp_ecc_anom_approx() {
         (i, (what, approx, real, error))
         in vec.iter().enumerate()
     {
+        let i = i % ORBIT_POLL_ANGLES;
         csv += &format!(
             "{what},{i},{angle},{approx},{real},{error},{rel_error}\n",
             angle = 4.0 * (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64),

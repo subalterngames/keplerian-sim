@@ -486,15 +486,14 @@ impl Orbit {
                 // c_a and s_a has a lot of repeated values, so we can
                 // optimize by calculating them together.
                 // c_a, s_a = 0.5 * [2 * M_h / e_c +- e_c / (2 * M_h)]
-                // c_a, s_a = M_h / e_c +- e_c / (4 * M_h)
                 //
-                // define "left"  = M_h / e_c
-                // define "right" = e_c / (4 * M_h)
+                // define "left"  = 2 * M_h / e_c
+                // define "right" = e_c / (2 * M_h)
 
-                let left = mean_anomaly / self.eccentricity;
-                let right = self.eccentricity * quarter_mean_anomaly;
+                let left = 2.0 * mean_anomaly / self.eccentricity;
+                let right = self.eccentricity / (2.0 * mean_anomaly);
 
-                (left + right, left - right)
+                (0.5 * (left + right), 0.5 * (left - right))
             };
 
             let alpha =
@@ -513,7 +512,7 @@ impl Orbit {
                 self.eccentricity * c_a * beta * gamma_sq
             );
 
-            let initial_guess = rough_guess + delta;
+            let initial_guess = rough_guess;
 
             // For e_c in [1, 5] and F in [5, 10], the paper
             // says the maximum relative error |F - F_0|/F is

@@ -18,6 +18,7 @@ for type_name, group in grouped_data:
     plt.plot(group['iter'], group['approx'], label='approx')
     plt.plot(group['iter'], group['real'], label='real')
     # plt.plot(group['iter'], group['error'], label='error')
+    # plt.plot(group['iter'], group['rel_error'], label='rel_error')
 
     # Add a legend and show the plot
     plt.legend()
