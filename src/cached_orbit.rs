@@ -480,8 +480,19 @@ impl Orbit {
             F_0 = F_a + delta
             */
 
-            let s_a = rough_guess.sinh();
-            let c_a = rough_guess.cosh();
+            let (c_a, s_a) = {
+                // c_a and s_a has a lot of repeated values, so we can
+                // optimize by calculating them together.
+                // c_a, s_a = 0.5 * [2 * M_h / e_c +- e_c / (2 * M_h)]
+                //
+                // define "left"  = 2 * M_h / e_c
+                // define "right" = e_c / (2 * M_h)
+
+                let left = 2.0 * mean_anomaly / self.eccentricity;
+                let right = self.eccentricity / (2.0 * mean_anomaly);
+
+                (0.5 * (left + right), 0.5 * (left - right))
+            };
 
             let alpha =
                 self.eccentricity * self.eccentricity /
