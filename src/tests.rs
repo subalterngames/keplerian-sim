@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::{CompactOrbit, Orbit, OrbitTrait};
-use std::{f64::consts::{PI, TAU}, fs};
+use std::f64::consts::{PI, TAU};
 
 type Vec3 = (f64, f64, f64);
 type Vec2 = (f64, f64);
@@ -663,173 +663,16 @@ fn test_sinh_approx_lt5() {
     }
 }
 
-/// Returns a tuple containing:
-/// - The approximated hyperbolic eccentric anomaly
-/// - The real hyperbolic eccentric anomaly
-/// - The error between the two
-fn test_hyp_ecc_anom_approx_for_orbit(orbit: &Orbit) -> Vec<(f64, f64, f64)> {
-    let mut vec = Vec::with_capacity(ORBIT_POLL_ANGLES);
 
-    for i in 0..ORBIT_POLL_ANGLES {
-        let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
-        let angle = 4.0 * angle.powi(3); // Test a wider range of angles
-        let ecc_anom = orbit.get_approx_hyp_ecc_anomaly(angle);
-
-        let expected = slowly_get_real_hyperbolic_eccentric_anomaly(orbit, angle);
-
-        let error = (ecc_anom - expected).abs();
-
-        vec.push((ecc_anom, expected, error));
-    }
-
-    return vec;
-}
-
-#[test]
-fn test_hyp_ecc_anom_approx() {
-    const OUTPUT_CSV_PATH: &str = "out/test_hyp_ecc_anom_approx.csv";
-
-    let orbits = [
-        (
-            "Normal parabolic",
-            Orbit::new(
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0
-            )
-        ),
-        (
-            "Normal hyperbolic",
-            Orbit::new(
-                1.5,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0
-            )
-        ),
-        (
-            "Extreme hyperbolic",
-            Orbit::new(
-                100.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0
-            )
-        ),
-    ];
-
-    let mut vec =
-        Vec::with_capacity(ORBIT_POLL_ANGLES * orbits.len());
-
-    println!("Testing hyperbolic eccentric anomaly approximation");
-    println!(
-        "Total iterations: {} ({ORBIT_POLL_ANGLES} angles, {} orbits)",
-        ORBIT_POLL_ANGLES * orbits.len(),
-        orbits.len()
-    );
-
-    for (what, orbit) in orbits.iter() {
-        let res = test_hyp_ecc_anom_approx_for_orbit(orbit);
-
-        for (approx, real, error) in res {
-            vec.push((what, approx, real, error));
-        }
-    }
-
-    // Process and print summary
-    {
-        struct Situation {
-            orbit_type: &'static str,
-            iteration_num: usize,
-            angle: f64,
-            error: f64,
-            approx: f64,
-            real: f64,
-        }
-
-        let mut situation_at_max_error = Situation {
-            orbit_type: "",
-            iteration_num: 0,
-            angle: 0.0,
-            error: 0.0,
-            approx: 0.0,
-            real: 0.0,
-        };
-
-        let mut total_error = 0.0;
-
-        for (i, (what, approx, real, error)) in vec.iter().enumerate() {
-            total_error += error;
-
-            if *error > situation_at_max_error.error {
-                situation_at_max_error = Situation {
-                    orbit_type: what,
-                    iteration_num: i,
-                    angle: 4.0 * (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64),
-                    error: *error,
-                    approx: *approx,
-                    real: *real,
-                };
-            }
-        }
-
-        let average_error = total_error / (vec.len() as f64);
-
-        println!(
-            "Polling complete!\n\
-            Summary: \n\
-            ... Average error: {}\n\
-            ... Max error: {}\n\
-            ..... Orbit type: {}\n\
-            ..... Iteration number: {}\n\
-            ..... Angle: {}\n\
-            ..... Gotten: {}\n\
-            ..... Expected: {}\n",
-            average_error,
-            situation_at_max_error.error,
-            situation_at_max_error.orbit_type,
-            situation_at_max_error.iteration_num,
-            situation_at_max_error.angle,
-            situation_at_max_error.approx,
-            situation_at_max_error.real,
-        )
-    }
-
-    println!("Constructing CSV...");
-
-    let mut csv = String::new();
-    csv += "orbit,iter,angle,approx,real,error,rel_error\n";
-
-    for
-        (i, (what, approx, real, error))
-        in vec.iter().enumerate()
-    {
-        let i = i % ORBIT_POLL_ANGLES;
-        csv += &format!(
-            "{what},{i},{angle},{approx},{real},{error},{rel_error}\n",
-            angle = 4.0 * (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64),
-            rel_error = error.abs() / real,
-        );
-    }
-
-    println!("Writing CSV to '{OUTPUT_CSV_PATH}'...");
-
-    let _ = fs::write(OUTPUT_CSV_PATH, csv)
-        .inspect_err(|e| println!("Failed to write CSV: {}", e));
+fn keplers_equation_hyperbolic(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
+    return eccentricity * eccentric_anomaly.sinh() - eccentric_anomaly - mean_anomaly;
 }
 
 /// Use binary search to get the real hyperbolic eccentric anomaly instead of Newton's method.
 /// 
 /// We can do this because the hyperbolic KE is a monotonic function.
 fn slowly_get_real_hyperbolic_eccentric_anomaly(orbit: &Orbit, mean_anomaly: f64) -> f64 {
-    use crate::keplers_equation_hyperbolic as ke;
+    use keplers_equation_hyperbolic as ke;
     let eccentricity = orbit.get_eccentricity();
 
     let mut low = -1.0;
@@ -900,7 +743,7 @@ fn slowly_get_real_hyperbolic_eccentric_anomaly(orbit: &Orbit, mean_anomaly: f64
 }
 
 #[test]
-fn test_hyperbolic_eccentric_anomaly_experimental() {
+fn test_hyperbolic_eccentric_anomaly() {
     let orbits = [
         (
             "Normal parabolic",
@@ -967,7 +810,7 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
             let angle = 4.0 * angle.powi(3); // Test a wider range of angles
             
             let ecc_anom =
-                orbit.get_eccentric_anomaly_hyperbolic_experimental(
+                orbit.get_eccentric_anomaly(
                     angle
                 );
 
@@ -993,7 +836,7 @@ fn test_hyperbolic_eccentric_anomaly_experimental() {
 
     assert!(
         situation_at_max_deviation.deviation < 1e-6,
-        "Experimental hyp. ecc. anom. deviates too much from stable amount \
+        "Hyp. ecc. anom. deviates too much from stable amount \
         at iteration {}, {} rad\n\
         ... Orbit type: {}\n\
         ... Deviation: {}\n\

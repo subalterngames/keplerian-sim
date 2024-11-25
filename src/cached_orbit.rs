@@ -1,9 +1,6 @@
 use crate::{
     keplers_equation,
     keplers_equation_derivative,
-    keplers_equation_hyperbolic,
-    keplers_equation_hyperbolic_derivative,
-    keplers_equation_hyperbolic_second_derivative,
     keplers_equation_second_derivative,
     solve_monotone_cubic,
     ApoapsisSetterError,
@@ -11,7 +8,7 @@ use crate::{
     Matrix3x2,
     OrbitTrait
 };
-use std::f64::{consts::{PI, TAU}, NAN};
+use std::f64::consts::{PI, TAU};
 
 /// A struct representing a Keplerian orbit with some cached values.
 /// 
@@ -497,51 +494,10 @@ impl Orbit {
         };
     }
 
-    fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
-        let target_accuracy = 1e-9;
-        let mut eccentric_anomaly =
-            (2.0 * mean_anomaly.abs() / self.eccentricity).ln().max(0.01) *
-            mean_anomaly.signum();
-
-        for _ in 0..NUMERIC_MAX_ITERS {
-            // HALLEY'S METHOD
-            // https://en.wikipedia.org/wiki/Halley%27s_method
-            // x_n+1 = x_n - f(x_n) / (f'(x_n) - f(x_n) * f''(x_n) / (2 * f'(x_n)))
-
-            let f = keplers_equation_hyperbolic(mean_anomaly, eccentric_anomaly, self.eccentricity);
-            let fp = keplers_equation_hyperbolic_derivative(eccentric_anomaly, self.eccentricity);
-            let fpp = keplers_equation_hyperbolic_second_derivative(eccentric_anomaly, self.eccentricity);
-
-            let denominator = fp - f * fpp / (2.0 * fp);
-
-            if denominator.abs() < 1e-30 || !denominator.is_finite() {
-                // dangerously close to div-by-zero, break out
-                #[cfg(debug_assertions)]
-                eprintln!("Hyperbolic eccentric anomaly solver: denominator is too small or not finite");
-                break;
-            }
-
-            let next_value = eccentric_anomaly - f / denominator;
-
-            let diff = (eccentric_anomaly - next_value).abs();
-            eccentric_anomaly = next_value;
-
-            if diff < target_accuracy {
-                break;
-            }
-        }
-
-        return eccentric_anomaly;
-    }
-
-    /// Get the eccentric anomaly of an orbit.
-    /// 
-    /// EXPERIMENTAL: This function is not yet stable and may not work properly yet.
-    /// 
     /// From the paper:  
     /// "A new method for solving the hyperbolic Kepler equation"  
     /// by Baisheng Wu et al.  
-    pub fn get_eccentric_anomaly_hyperbolic_experimental(&self, mean_anomaly: f64) -> f64 {
+    fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
         let mut ecc_anom = self.get_approx_hyp_ecc_anomaly(mean_anomaly);
 
         /*
