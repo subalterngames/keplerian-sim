@@ -11,6 +11,10 @@ name = "eccentric_anomaly"
 harness = false
 
 [[bench]]
+name = "experimental_eccentric_anomaly"
+harness = false
+
+[[bench]]
 name = "true_anomaly"
 harness = false
 
