@@ -4,6 +4,9 @@ description = "A Keplerian orbit library"
 license = "GPL-3.0-or-later"
 version = "0.1.0"
 edition = "2021"
+keywords = ["kepler", "orbit", "simulation", "patchedconics", "kerbalspaceprogram"]
+categories = ["aerospace::simulation", "simulation", "science"]
+include = ["/src", "README.md", "LICENSE", "Cargo.toml", "Cargo.lock", "CREDITS.md"]
 
 [dev-dependencies]
 criterion = "0.5.1"
