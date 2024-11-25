@@ -354,7 +354,7 @@ impl Orbit {
     /// we apply a piecewise Pade approximation to establish an initial
     /// approximate solution of HKE. For the infinite interval, an analytical
     /// initial approximate solution is constructed."
-    fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> (f64, f64) {
+    pub fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> (f64, f64) {
         let sign = mean_anomaly.signum();
         let mean_anomaly = mean_anomaly.abs();
         const SINH_5: f64 = 74.20321057778875;
@@ -463,7 +463,7 @@ impl Orbit {
             Let:
                 alpha = e_c^2 / (4 * M_h) + F_a
                 beta  = 1 / (e_c * c_a - 1)
-                gamma = alpha / beta
+                gamma = alpha * beta
             
             The equation gets simplified into:
             
@@ -501,7 +501,7 @@ impl Orbit {
                 self.eccentricity * self.eccentricity *
                 quarter_mean_anomaly + rough_guess;
             let beta = (self.eccentricity * c_a - 1.0).recip();
-            let gamma = alpha / beta;
+            let gamma = alpha * beta;
             let gamma_sq = gamma * gamma;
 
             let delta = (
