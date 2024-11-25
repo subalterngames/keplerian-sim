@@ -603,18 +603,22 @@ fn keplers_equation_second_derivative(eccentric_anomaly: f64, eccentricity: f64)
     return eccentricity * eccentric_anomaly.sin();
 }
 
-// #[inline]
-// fn keplers_equation_hyperbolic(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-//     return eccentricity * eccentric_anomaly.sinh() - eccentric_anomaly - mean_anomaly;
-// }
-// #[inline]
-// fn keplers_equation_hyperbolic_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-//     return eccentricity * eccentric_anomaly.cosh() - 1.0;
-// }
-// #[inline]
-// fn keplers_equation_hyperbolic_second_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-//     return eccentricity * eccentric_anomaly.sinh();
-// }
+/// Get the hyperbolic sine and cosine of a number.
+/// 
+/// Usually faster than calling `x.sinh()` and `x.cosh()` separately.
+/// 
+/// Returns a tuple which contains:
+/// - 0: The hyperbolic sine of the number.
+/// - 1: The hyperbolic cosine of the number.
+fn sinhcosh(x: f64) -> (f64, f64) {
+    let e_x = x.exp();
+    let e_neg_x = (-x).exp();
+
+    return (
+        (e_x - e_neg_x) * 0.5,
+        (e_x + e_neg_x) * 0.5
+    );
+}
 
 /// Solve a cubic equation to get its real root.
 /// 

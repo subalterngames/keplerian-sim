@@ -1,12 +1,5 @@
 use crate::{
-    keplers_equation,
-    keplers_equation_derivative,
-    keplers_equation_second_derivative,
-    solve_monotone_cubic,
-    ApoapsisSetterError,
-    CompactOrbit,
-    Matrix3x2,
-    OrbitTrait
+    keplers_equation, keplers_equation_derivative, keplers_equation_second_derivative, sinhcosh, solve_monotone_cubic, ApoapsisSetterError, CompactOrbit, Matrix3x2, OrbitTrait
 };
 use std::f64::consts::{PI, TAU};
 
@@ -544,9 +537,11 @@ impl Orbit {
          */
 
         for _ in 0..NUMERIC_MAX_ITERS {
-            let hppp = self.eccentricity * ecc_anom.cosh();
+            let (sinh_eca, cosh_eca) = sinhcosh(ecc_anom);
+
+            let hppp = self.eccentricity * cosh_eca;
             let hp = hppp - 1.0;
-            let hpp = self.eccentricity * ecc_anom.sinh();
+            let hpp = self.eccentricity * sinh_eca;
             let h = hpp - ecc_anom - mean_anomaly;
 
             let h_sq = h * h;
