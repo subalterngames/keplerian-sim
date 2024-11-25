@@ -85,7 +85,6 @@ impl Body {
             .ok_or("Body is not in orbit")?;
 
         if orbit.get_eccentricity() >= 1.0 {
-            // FIXME: This is probably not the right equation
             self.progress += dt * g;
         } else {
             let period = self.get_orbital_period(g)
