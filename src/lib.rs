@@ -40,7 +40,7 @@
 //! ## Example
 //! 
 //! ```rust
-//! use keplerian_rust::{Orbit, OrbitTrait};
+//! use keplerian_sim::{Orbit, OrbitTrait};
 //! 
 //! # fn main() {
 //! // Create a perfectly circular orbit with a radius of 1 meter
@@ -75,7 +75,7 @@ pub use universe::Universe;
 /// 
 /// # Example
 /// ```
-/// use keplerian_rust::Matrix3x2;
+/// use keplerian_sim::Matrix3x2;
 /// 
 /// let matrix: Matrix3x2<f64> = Matrix3x2 {
 ///    e11: 1.0, e12: 0.0,
@@ -107,7 +107,7 @@ impl<T: Copy> Matrix3x2<T> {
     /// 
     /// # Example
     /// ```
-    /// use keplerian_rust::Matrix3x2;
+    /// use keplerian_sim::Matrix3x2;
     /// 
     /// let matrix = Matrix3x2::filled_with(0.0);
     /// 
@@ -134,7 +134,7 @@ where
     /// 
     /// # Example
     /// ```
-    /// use keplerian_rust::Matrix3x2;
+    /// use keplerian_sim::Matrix3x2;
     /// 
     /// let matrix: Matrix3x2<f64> = Matrix3x2 {
     ///     e11: 1.0, e12: 0.0,
@@ -166,7 +166,7 @@ type Vec2 = (f64, f64);
 /// 
 /// # Examples
 /// ```
-/// use keplerian_rust::{Orbit, OrbitTrait, CompactOrbit};
+/// use keplerian_sim::{Orbit, OrbitTrait, CompactOrbit};
 /// 
 /// fn accepts_orbit(orbit: &impl OrbitTrait) {
 ///     println!("That's an orbit!");
@@ -182,7 +182,7 @@ type Vec2 = (f64, f64);
 /// ```
 /// 
 /// ```compile_fail
-/// # use keplerian_rust::{Orbit, OrbitTrait, CompactOrbit};
+/// # use keplerian_sim::{Orbit, OrbitTrait, CompactOrbit};
 /// # 
 /// # fn accepts_orbit(orbit: &impl OrbitTrait) {
 /// #     println!("That's an orbit!");
@@ -210,7 +210,7 @@ pub trait OrbitTrait {
     /// 
     /// # Example
     /// ```
-    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
     /// let mut orbit = Orbit::new_default();
     /// orbit.set_periapsis(50.0);
@@ -240,7 +240,7 @@ pub trait OrbitTrait {
     /// 
     /// # Example
     /// ```
-    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
     /// let mut orbit = Orbit::new_default();
     /// orbit.set_periapsis(50.0);
@@ -265,7 +265,7 @@ pub trait OrbitTrait {
     /// 
     /// # Examples
     /// ```
-    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
     /// let mut orbit = Orbit::new_default();
     /// orbit.set_eccentricity(0.5); // Elliptic
@@ -287,7 +287,7 @@ pub trait OrbitTrait {
     /// 
     /// # Examples
     /// ```
-    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
     /// let mut orbit = Orbit::new_default();
     /// orbit.set_periapsis(50.0);
@@ -301,14 +301,14 @@ pub trait OrbitTrait {
     /// assert!(result.is_err());
     /// assert!(
     ///     result.unwrap_err() ==
-    ///     keplerian_rust::ApoapsisSetterError::ApoapsisLessThanPeriapsis
+    ///     keplerian_sim::ApoapsisSetterError::ApoapsisLessThanPeriapsis
     /// );
     /// 
     /// let result = orbit.set_apoapsis(-25.0);
     /// assert!(result.is_err());
     /// assert!(
     ///     result.unwrap_err() ==
-    ///     keplerian_rust::ApoapsisSetterError::ApoapsisNegative
+    ///     keplerian_sim::ApoapsisSetterError::ApoapsisNegative
     /// );
     /// ```
     fn set_apoapsis(&mut self, apoapsis: f64) -> Result<(), ApoapsisSetterError>;
@@ -330,12 +330,12 @@ pub trait OrbitTrait {
     /// 
     /// # Example
     /// ```
-    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
     /// let orbit = Orbit::new_default();
     /// let matrix = orbit.get_transformation_matrix();
     /// 
-    /// assert_eq!(matrix, keplerian_rust::Matrix3x2 {
+    /// assert_eq!(matrix, keplerian_sim::Matrix3x2 {
     ///     e11: 1.0, e12: 0.0,
     ///     e21: 0.0, e22: 1.0,
     ///     e31: 0.0, e32: 0.0,
@@ -436,7 +436,7 @@ pub trait OrbitTrait {
     /// 
     /// # Example
     /// ```
-    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
     /// let mut orbit = Orbit::new_default();
     /// orbit.set_periapsis(100.0);
@@ -461,7 +461,7 @@ pub trait OrbitTrait {
     /// 
     /// # Example
     /// ```
-    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
     /// let mut orbit = Orbit::new_default();
     /// orbit.set_periapsis(100.0);
@@ -483,7 +483,7 @@ pub trait OrbitTrait {
     /// 
     /// # Example
     /// ```
-    /// use keplerian_rust::{Orbit, OrbitTrait};
+    /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
     /// let mut orbit = Orbit::new_default();
     /// orbit.set_periapsis(100.0);

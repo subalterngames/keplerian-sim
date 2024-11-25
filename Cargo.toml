@@ -1,5 +1,6 @@
 [package]
-name = "keplerian_rust"
+name = "keplerian_sim"
+description = "A Keplerian orbit library"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,5 +1,5 @@
 // Escape trajectory, kinda like Voyager 1
-use keplerian_rust::{Orbit, OrbitTrait};
+use keplerian_sim::{Orbit, OrbitTrait};
 use std::{fs, path::PathBuf};
 
 const SIMULATION_TICKS: u128 = 10_000;

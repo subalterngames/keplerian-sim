@@ -1,4 +1,4 @@
-use keplerian_rust::{
+use keplerian_sim::{
     Universe, body_presets
 };
 

@@ -11,7 +11,7 @@ use std::f64::consts::{PI, TAU};
 /// 
 /// # Example
 /// ```
-/// use keplerian_rust::{Orbit, OrbitTrait};
+/// use keplerian_sim::{Orbit, OrbitTrait};
 /// 
 /// let orbit = Orbit::new(
 ///     // Initialize using eccentricity, periapsis, inclination,

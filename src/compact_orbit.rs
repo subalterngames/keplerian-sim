@@ -12,7 +12,7 @@ use crate::{
 /// 
 /// # Example
 /// ```
-/// use keplerian_rust::{CompactOrbit, OrbitTrait};
+/// use keplerian_sim::{CompactOrbit, OrbitTrait};
 /// 
 /// let orbit = CompactOrbit::new(
 ///     // Initialize using eccentricity, periapsis, inclination,
