@@ -1,7 +1,7 @@
 use crate::{
     keplers_equation, keplers_equation_derivative, keplers_equation_second_derivative, sinhcosh, solve_monotone_cubic, ApoapsisSetterError, CompactOrbit, Matrix3x2, OrbitTrait
 };
-use std::f64::consts::{PI, TAU};
+use core::f64::consts::{PI, TAU};
 
 /// A struct representing a Keplerian orbit with some cached values.
 /// 

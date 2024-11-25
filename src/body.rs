@@ -1,5 +1,5 @@
 use crate::{Orbit, OrbitTrait};
-use std::f64::consts::TAU as TAU;
+use core::f64::consts::TAU as TAU;
 
 /// A struct representing a celestial body.
 #[derive(Clone, Debug, PartialEq)]
@@ -70,7 +70,7 @@ impl Body {
         let mu = g * self.mass;
 
         if orbit.get_eccentricity() >= 1.0 {
-            return Some(std::f64::INFINITY);
+            return Some(core::f64::INFINITY);
         }
 
         let semi_major_axis = orbit.get_semi_major_axis();

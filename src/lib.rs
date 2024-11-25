@@ -128,7 +128,7 @@ impl<T: Copy> Matrix3x2<T> {
 
 impl<T> Matrix3x2<T>
 where
-    T: Copy + std::ops::Mul<Output = T> + std::ops::Add<Output = T>
+    T: Copy + core::ops::Mul<Output = T> + core::ops::Add<Output = T>
 {
     /// Computes a dot product between this matrix and a 2D vector.
     /// 
@@ -677,37 +677,3 @@ fn solve_monotone_cubic(a: f64, b: f64, c: f64, d: f64) -> f64 {
 }
 
 mod generated_sinh_approximator;
-
-#[cfg(test)]
-mod sinh_approx_bench {
-    use crate::generated_sinh_approximator::sinh_approx_lt5;
-    use std::hint::black_box;
-    use std::time::Instant;
-
-    // Run this benchmark:
-    // `RUST_TEST_NOCAPTURE=1 cargo test -r bench_sinh` (bash)
-    #[test]
-    fn bench_sinh() {
-        let base_start_time = Instant::now();
-        for i in 0..5000000 {
-            let f = i as f64 * 1e-6;
-            black_box(black_box(f).sinh());
-        }
-        let base_duration = base_start_time.elapsed();
-
-        let approx_start_time = Instant::now();
-        for i in 0..5000000 {
-            let f = i as f64 * 1e-6;
-            black_box(sinh_approx_lt5(black_box(f)));
-        }
-        let approx_duration = approx_start_time.elapsed();
-
-        eprintln!("Real sinh call: {:?}", base_duration);
-        eprintln!("Approximation: {:?}", approx_duration);
-        let speed_factor = base_duration.as_nanos() as f64 / approx_duration.as_nanos() as f64;
-        eprintln!(
-            "\nThe approximation is {speed_factor}x the speed of the real sinh call.",
-        );
-        assert!(speed_factor > 1.0, "The approximation is slower than the real sinh call.");
-    }
-}
