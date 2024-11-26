@@ -1,5 +1,8 @@
 # Keplerian-sim
-A Rust program I ported from C# to simulate Keplerian orbits.
+A Rust library for simulating Keplerian orbits.
+
+**[Documentation](https://docs.rs/keplerian-sim/)**  
+**[Crate](https://crates.io/crates/keplerian-sim)**
 
 ## Dependencies
 You'll need Cargo and Rust to run the example binary. You can get it [at rustup.rs](https://rustup.rs/).
