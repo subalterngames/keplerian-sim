@@ -7,6 +7,7 @@ edition = "2021"
 keywords = ["kepler", "orbit", "simulation", "patchedconics", "kerbalspaceprogram"]
 categories = ["aerospace::simulation", "simulation", "science"]
 include = ["/src", "README.md", "LICENSE", "Cargo.toml", "Cargo.lock", "CREDITS.md"]
+repository = "https://github.com/Not-A-Normal-Robot/keplerian-sim"
 
 [dev-dependencies]
 criterion = "0.5.1"
