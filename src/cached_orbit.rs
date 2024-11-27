@@ -660,28 +660,19 @@ impl OrbitTrait for Orbit {
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
         return t * TAU + self.mean_anomaly;
     }
-}
 
-// Getters and setters (boring)
-impl Orbit {
-    // These functions are extremely intuitive and do not require documentation
-    #![allow(missing_docs)]
-    pub fn get_periapsis          (&self) -> f64 { self.periapsis }
-    pub fn get_inclination        (&self) -> f64 { self.inclination }
-    pub fn get_arg_pe             (&self) -> f64 { self.arg_pe }
-    pub fn get_long_asc_node      (&self) -> f64 { self.long_asc_node }
-    pub fn get_mean_anomaly       (&self) -> f64 { self.mean_anomaly }
-    pub fn get_semi_major_axis    (&self) -> f64 { self.cache.semi_major_axis }
-    pub fn get_semi_minor_axis    (&self) -> f64 { self.cache.semi_minor_axis }
-    pub fn get_linear_eccentricity(&self) -> f64 { self.cache.linear_eccentricity }
-    pub fn get_eccentricity       (&self) -> f64 { self.eccentricity }
-
-    pub fn set_eccentricity (&mut self, value: f64) { self.eccentricity  = value; self.update_cache(); }
-    pub fn set_periapsis    (&mut self, value: f64) { self.periapsis     = value; self.update_cache(); }
-    pub fn set_inclination  (&mut self, value: f64) { self.inclination   = value; self.update_cache(); }
-    pub fn set_arg_pe       (&mut self, value: f64) { self.arg_pe        = value; self.update_cache(); }
-    pub fn set_long_asc_node(&mut self, value: f64) { self.long_asc_node = value; self.update_cache(); }
-    pub fn set_mean_anomaly (&mut self, value: f64) { self.mean_anomaly  = value; self.update_cache(); }
+    fn get_eccentricity         (&self) -> f64 { self.eccentricity }
+    fn get_periapsis            (&self) -> f64 { self.periapsis }
+    fn get_inclination          (&self) -> f64 { self.inclination }
+    fn get_arg_pe               (&self) -> f64 { self.arg_pe }
+    fn get_long_asc_node        (&self) -> f64 { self.long_asc_node }
+    fn get_mean_anomaly_at_epoch(&self) -> f64 { self.mean_anomaly }
+    fn set_eccentricity         (&mut self, value: f64) { self.eccentricity  = value; self.update_cache(); }
+    fn set_periapsis            (&mut self, value: f64) { self.periapsis     = value; self.update_cache(); }
+    fn set_inclination          (&mut self, value: f64) { self.inclination   = value; self.update_cache(); }
+    fn set_arg_pe               (&mut self, value: f64) { self.arg_pe        = value; self.update_cache(); }
+    fn set_long_asc_node        (&mut self, value: f64) { self.long_asc_node = value; self.update_cache(); }
+    fn set_mean_anomaly_at_epoch(&mut self, value: f64) { self.mean_anomaly  = value; self.update_cache(); }
 }
 
 impl From<CompactOrbit> for Orbit {

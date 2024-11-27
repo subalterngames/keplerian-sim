@@ -610,6 +610,20 @@ impl OrbitTrait for CompactOrbit {
         let time = t.rem_euclid(1.0);
         return time * TAU + self.mean_anomaly;
     }
+
+    fn get_eccentricity         (&self) -> f64 { self.eccentricity }
+    fn get_periapsis            (&self) -> f64 { self.periapsis }
+    fn get_inclination          (&self) -> f64 { self.inclination }
+    fn get_arg_pe               (&self) -> f64 { self.arg_pe }
+    fn get_long_asc_node        (&self) -> f64 { self.long_asc_node }
+    fn get_mean_anomaly_at_epoch(&self) -> f64 { self.mean_anomaly }
+
+    fn set_eccentricity         (&mut self, value: f64) { self.eccentricity  = value }
+    fn set_periapsis            (&mut self, value: f64) { self.periapsis     = value }
+    fn set_inclination          (&mut self, value: f64) { self.inclination   = value }
+    fn set_arg_pe               (&mut self, value: f64) { self.arg_pe        = value }
+    fn set_long_asc_node        (&mut self, value: f64) { self.long_asc_node = value }
+    fn set_mean_anomaly_at_epoch(&mut self, value: f64) { self.mean_anomaly  = value }
 }
 
 impl From<Orbit> for CompactOrbit {
@@ -620,7 +634,7 @@ impl From<Orbit> for CompactOrbit {
             inclination: cached.get_inclination(),
             arg_pe: cached.get_arg_pe(),
             long_asc_node: cached.get_long_asc_node(),
-            mean_anomaly: cached.get_mean_anomaly()
+            mean_anomaly: cached.get_mean_anomaly_at_epoch()
         };
     }
 }

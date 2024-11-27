@@ -181,6 +181,8 @@ type Vec2 = (f64, f64);
 /// }
 /// ```
 /// 
+/// This example will fail to compile:
+/// 
 /// ```compile_fail
 /// # use keplerian_sim::{Orbit, OrbitTrait, CompactOrbit};
 /// # 
@@ -569,6 +571,156 @@ pub trait OrbitTrait {
     fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3 {
         self.get_transformation_matrix().dot_vec((x, y))
     }
+
+    /// Gets the eccentricity of the orbit.
+    /// 
+    /// The eccentricity of an orbit is a measure of how much it deviates
+    /// from a perfect circle.
+    /// 
+    /// An eccentricity of 0 means the orbit is a perfect circle.  
+    /// Between 0 and 1, the orbit is elliptic, and has an oval shape.  
+    /// An orbit with an eccentricity of 1 is said to be parabolic.  
+    /// If it's greater than 1, the orbit is hyperbolic.
+    /// 
+    /// For hyperbolic trajectories, the higher the eccentricity, the
+    /// straighter the path.
+    /// 
+    /// Wikipedia on conic section eccentricity: <https://en.wikipedia.org/wiki/Eccentricity_(mathematics)>  
+    /// (Keplerian orbits are conic sections, so the concepts still apply)
+    fn get_eccentricity(&self) -> f64;
+
+    /// Sets the eccentricity of the orbit.
+    /// 
+    /// The eccentricity of an orbit is a measure of how much it deviates
+    /// from a perfect circle.
+    /// 
+    /// An eccentricity of 0 means the orbit is a perfect circle.  
+    /// Between 0 and 1, the orbit is elliptic, and has an oval shape.  
+    /// An orbit with an eccentricity of 1 is said to be parabolic.  
+    /// If it's greater than 1, the orbit is hyperbolic.
+    /// 
+    /// For hyperbolic trajectories, the higher the eccentricity, the
+    /// straighter the path.
+    /// 
+    /// Wikipedia on conic section eccentricity: <https://en.wikipedia.org/wiki/Eccentricity_(mathematics)>  
+    /// (Keplerian orbits are conic sections, so the concepts still apply)
+    fn set_eccentricity(&mut self, eccentricity: f64);
+
+    /// Gets the periapsis of the orbit.
+    /// 
+    /// The periapsis of an orbit is the distance at the closest point
+    /// to the parent body.
+    /// 
+    /// More simply, this is the "minimum altitude" of an orbit.
+    /// 
+    /// Wikipedia: <https://en.wikipedia.org/wiki/Apsis>
+    fn get_periapsis(&self) -> f64;
+
+    /// Sets the periapsis of the orbit.
+    /// 
+    /// The periapsis of an orbit is the distance at the closest point
+    /// to the parent body.
+    /// 
+    /// More simply, this is the "minimum altitude" of an orbit.
+    /// 
+    /// Wikipedia: <https://en.wikipedia.org/wiki/Apsis>
+    fn set_periapsis(&mut self, periapsis: f64);
+
+    /// Gets the inclination of the orbit in radians.
+    /// 
+    /// The inclination of an orbit is the angle between the plane of the
+    /// orbit and the reference plane.
+    /// 
+    /// In simple terms, it tells you how "tilted" the orbit is.
+    /// 
+    /// Wikipedia: <https://en.wikipedia.org/wiki/Orbital_inclination>
+    fn get_inclination(&self) -> f64;
+
+    /// Sets the inclination of the orbit in radians.
+    /// 
+    /// The inclination of an orbit is the angle between the plane of the
+    /// orbit and the reference plane.
+    /// 
+    /// In simple terms, it tells you how "tilted" the orbit is.
+    /// 
+    /// Wikipedia: <https://en.wikipedia.org/wiki/Orbital_inclination>
+    fn set_inclination(&mut self, inclination: f64);
+
+    /// Gets the argument of periapsis of the orbit in radians.
+    /// 
+    /// Wikipedia:  
+    /// The argument of periapsis is the angle from the body's
+    /// ascending node to its periapsis, measured in the direction of
+    /// motion.  
+    /// <https://en.wikipedia.org/wiki/Argument_of_periapsis>
+    /// 
+    /// In simple terms, it tells you how, and in which direction,
+    /// the orbit "tilts".
+    fn get_arg_pe(&self) -> f64;
+
+    /// Sets the argument of periapsis of the orbit in radians.
+    /// 
+    /// Wikipedia:  
+    /// The argument of periapsis is the angle from the body's
+    /// ascending node to its periapsis, measured in the direction of
+    /// motion.  
+    /// <https://en.wikipedia.org/wiki/Argument_of_periapsis>
+    /// 
+    /// In simple terms, it tells you how, and in which direction,
+    /// the orbit "tilts".
+    fn set_arg_pe(&mut self, arg_pe: f64);
+
+    /// Gets the longitude of ascending node of the orbit in radians.
+    /// 
+    /// Wikipedia:  
+    /// The longitude of ascending node is the angle from a specified
+    /// reference direction, called the origin of longitude, to the direction
+    /// of the ascending node, as measured in a specified reference plane.  
+    /// <https://en.wikipedia.org/wiki/Longitude_of_the_ascending_node>
+    /// 
+    /// In simple terms, it tells you how, and in which direction,
+    /// the orbit "tilts".
+    fn get_long_asc_node(&self) -> f64;
+
+    /// Sets the longitude of ascending node of the orbit in radians.
+    /// 
+    /// Wikipedia:  
+    /// The longitude of ascending node is the angle from a specified
+    /// reference direction, called the origin of longitude, to the direction
+    /// of the ascending node, as measured in a specified reference plane.  
+    /// <https://en.wikipedia.org/wiki/Longitude_of_the_ascending_node>
+    /// 
+    /// In simple terms, it tells you how, and in which direction,
+    /// the orbit "tilts".
+    fn set_long_asc_node(&mut self, long_asc_node: f64);
+
+    /// Gets the mean anomaly of the orbit at a certain epoch.
+    /// 
+    /// For elliptic orbits, it's measured in radians and so are bounded
+    /// between 0 and tau; anything out of range will get wrapped around.  
+    /// For hyperbolic orbits, it's unbounded.
+    /// 
+    /// Wikipedia:  
+    /// The mean anomaly at epoch, `M_0`, is defined as the instantaneous mean
+    /// anomaly at a given epoch, `t_0`.  
+    /// <https://en.wikipedia.org/wiki/Mean_anomaly#Mean_anomaly_at_epoch>
+    /// 
+    /// In simple terms, this modifies the "offset" of the orbit progression.
+    fn get_mean_anomaly_at_epoch(&self) -> f64;
+
+    /// Sets the mean anomaly of the orbit at a certain epoch.
+    /// 
+    /// For elliptic orbits, it's measured in radians and so are bounded
+    /// between 0 and tau; anything out of range will get wrapped around.  
+    /// For hyperbolic orbits, it's unbounded.
+    /// 
+    /// Wikipedia:  
+    /// The mean anomaly at epoch, `M_0`, is defined as the instantaneous mean
+    /// anomaly at a given epoch, `t_0`.  
+    /// <https://en.wikipedia.org/wiki/Mean_anomaly#Mean_anomaly_at_epoch>
+    /// 
+    /// In simple terms, this modifies the "offset" of the orbit progression.
+    fn set_mean_anomaly_at_epoch(&mut self, mean_anomaly: f64);
 }
 
 /// An error to describe why setting the periapsis of an orbit failed.

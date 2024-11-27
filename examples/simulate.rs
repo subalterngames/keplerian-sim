@@ -1,5 +1,6 @@
 use keplerian_sim::{
-    Universe, body_presets
+    Universe, body_presets,
+    OrbitTrait
 };
 
 const SIMULATION_TICKS: u128 = 10_000_000;
@@ -92,7 +93,7 @@ fn describe_universe(universe: &Universe) {
             println!("        Inclination: {}", orbit.get_inclination());
             println!("        Argument of periapsis: {}", orbit.get_arg_pe());
             println!("        Longitude of ascending node: {}", orbit.get_long_asc_node());
-            println!("        Mean anomaly at epoch: {}", orbit.get_mean_anomaly());
+            println!("        Mean anomaly at epoch: {}", orbit.get_mean_anomaly_at_epoch());
 
         }
     }
