@@ -432,6 +432,49 @@ fn orbit_conversion_base_test(orbit: Orbit, what: &str) {
             assert_eq_vec3(original_positions[i], reexpanded_positions[i], &reexpanded_message);
         }
     }
+    {
+        let original_altitudes = {
+            let mut vec: Vec<f64> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+            for i in 0..ORBIT_POLL_ANGLES {
+                let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+                let altitude = orbit.get_altitude_at_angle(angle);
+                vec.push(altitude);
+            }
+
+            vec
+        };
+        let compact_altitudes = {
+            let mut vec: Vec<f64> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+            for i in 0..ORBIT_POLL_ANGLES {
+                let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+                let altitude = compact_orbit.get_altitude_at_angle(angle);
+                vec.push(altitude);
+            }
+
+            vec
+        };
+        let reexpanded_altitudes = {
+            let mut vec: Vec<f64> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+
+            for i in 0..ORBIT_POLL_ANGLES {
+                let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
+                let altitude = reexpanded_orbit.get_altitude_at_angle(angle);
+                vec.push(altitude);
+            }
+
+            vec
+        };
+
+        let compact_message = format!("{compact_message} (altitude)");
+        let reexpanded_message = format!("{reexpanded_message} (altitude)");
+
+        for i in 0..original_altitudes.len() {
+            assert_eq!(original_altitudes[i].to_bits(), compact_altitudes[i].to_bits(), "{compact_message}");
+            assert_eq!(original_altitudes[i].to_bits(), reexpanded_altitudes[i].to_bits(), "{reexpanded_message}");
+        }
+    }
 }
 
 #[test]
@@ -861,6 +904,95 @@ fn test_hyperbolic_eccentric_anomaly() {
         situation_at_max_deviation.orbit_type,
         situation_at_max_deviation.iteration_num,
     );
+}
+
+
+
+#[test]
+fn test_distance() {
+    let orbits = [
+        (
+            "Circular",
+            Orbit::new(
+                0.0,
+                6.1378562542109725,
+                1.4755776307550952,
+                0.3267764431411045,
+                0.6031097400880272,
+                0.7494917839241119
+            ) 
+        ),
+        (
+            "Elliptic",
+            Orbit::new(
+                0.8136083012245382,
+                2.8944806908277103,
+                0.6401863568023209,
+                3.0362713144982374,
+                1.918498022946511,
+                5.8051565948396
+            )
+        ),
+        (
+            "Parabolic",
+            Orbit::new(
+                1.0,
+                6.209509865315525,
+                5.118096184019639,
+                3.981150762118136,
+                3.3940481449565048,
+                3.736718306390939
+            )
+        ),
+        (
+            "Hyperbolic",
+            Orbit::new(
+                2.826628243687278,
+                0.3257767961832889,
+                5.182279515397755,
+                6.212669269522696,
+                1.990603413825992,
+                6.145132647429473
+            )
+        )
+    ];
+
+    for (kind, orbit) in orbits {
+        for i in 0..ORBIT_POLL_ANGLES {
+            let angle = (i as f64) * TAU / (ORBIT_POLL_ANGLES as f64);
+    
+            let pos = orbit.get_position_at_angle(angle);
+            let flat_pos = orbit.get_flat_position_at_angle(angle);
+            let altitude = orbit.get_altitude_at_angle(angle);
+
+            let pos_alt = (
+                pos.0.powi(2) +
+                pos.1.powi(2) +
+                pos.2.powi(2)
+            ).sqrt();
+
+            let pos_flat = (
+                flat_pos.0.powi(2) +
+                flat_pos.1.powi(2)
+            ).sqrt();
+
+            if !altitude.is_finite() { continue; }
+
+            assert_almost_eq(
+                pos_alt, altitude,
+                &format!(
+                    "Dist of tilted point (orbit {kind}, angle {angle})",
+                )
+            );
+
+            assert_almost_eq(
+                pos_flat, altitude,
+                &format!(
+                    "Dist of flat point (orbit {kind}, angle {angle})",
+                )
+            );
+        }
+    }
 }
 
 mod monotone_cubic_solver {
