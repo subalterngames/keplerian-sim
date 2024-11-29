@@ -653,7 +653,6 @@ impl OrbitTrait for CompactOrbit {
     }
 
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
-        let time = t.rem_euclid(1.0);
         return time * TAU + self.mean_anomaly;
     }
 
