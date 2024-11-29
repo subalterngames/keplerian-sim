@@ -1,20 +1,26 @@
-use keplerian_sim::{OrbitTrait, body_presets};
+use keplerian_sim::{OrbitTrait, Orbit};
 use std::{fs, path::PathBuf};
 
 const SIMULATION_TICKS: u128 = 10_000;
-const CSV_PATH: &str = "out/output-dump-earthmoon.csv";
+const CSV_PATH: &str = "out/output-dump-elliptic.csv";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let moon_orbit = body_presets::moons::the_moon(true)
-        .orbit.unwrap();
-    let mut moon_positions: Vec<(f64, f64, f64)> = Vec::with_capacity(SIMULATION_TICKS as usize);
+    let orbit = Orbit::new(
+        0.85,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+    );
+    let mut positions: Vec<(f64, f64, f64)> = Vec::with_capacity(SIMULATION_TICKS as usize);
 
     print!("Simulating Earth-Moon system for {SIMULATION_TICKS} ticks...");
 
     for i in 0..SIMULATION_TICKS {
         let time = i as f64 / SIMULATION_TICKS as f64;
-        let pos = moon_orbit.get_position_at_time(time);
-        moon_positions.push(pos);
+        let pos = orbit.get_position_at_time(time);
+        positions.push(pos);
     }
 
     println!("Done!");
@@ -27,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Failed to get parent of CSV path")
     )?;
 
-    let contents = create_csv(&moon_positions);
+    let contents = create_csv(&positions);
     fs::write(&path, contents)?;
 
     println!("Done!");

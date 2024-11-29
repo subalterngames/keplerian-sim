@@ -3,7 +3,7 @@ use keplerian_sim::{
     OrbitTrait
 };
 
-const SIMULATION_TICKS: u128 = 10_000_000;
+const SIMULATION_TICKS: u128 = 1_000_000;
 fn main() {
     let mut universe = generate_solar_system();
     describe_universe(&universe);
