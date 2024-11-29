@@ -906,10 +906,118 @@ fn test_hyperbolic_eccentric_anomaly() {
     );
 }
 
+#[test]
+fn test_semi_latus_rectum() {
+    let orbits = [
+        (
+            "Circular",
+            Orbit::new(
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ),
+            1.0,
+        ),
+        (
+            "Large Circular",
+            Orbit::new(
+                0.0,
+                192.168001001,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            192.168001001,
+        ),
+        (
+            "Elliptic",
+            Orbit::new(
+                0.5,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            1.5
+        ),
+        (
+            "Large Elliptic",
+            Orbit::new(
+                0.5,
+                100.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            150.0
+        ),
+        (
+            "Parabolic",
+            Orbit::new(
+                1.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            2.0
+        ),
+        (
+            "Large Parabolic",
+            Orbit::new(
+                1.0,
+                100.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            200.0
+        ),
+        (
+            "Hyperbolic",
+            Orbit::new(
+                2.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            3.0
+        ),
+        (
+            "Large Hyperbolic",
+            Orbit::new(
+                2.0,
+                100.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            300.0
+        ),
+    ];
 
+    for (kind, orbit, expected) in orbits {
+        let semi_latus_rectum = orbit.get_semi_latus_rectum();
+        assert_almost_eq(
+            semi_latus_rectum, expected,
+            &format!("Semi-latus rectum of {} orbit", kind)
+        );
+    }
+}
 
 #[test]
-fn test_distance() {
+fn test_altitude() {
     let orbits = [
         (
             "Circular",

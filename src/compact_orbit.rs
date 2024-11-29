@@ -597,13 +597,19 @@ impl OrbitTrait for CompactOrbit {
     }
 
     fn get_semi_latus_rectum(&self) -> f64 {
-        return self.periapsis * (1.0 + self.eccentricity);
+        if self.eccentricity == 1.0 {
+            return 2.0 * self.periapsis;
+        }
+
+        return self.get_semi_major_axis() *
+            (1.0 - self.eccentricity * self.eccentricity);
     }
 
     fn get_altitude_at_angle(&self, true_anomaly: f64) -> f64 {
-        return
+        return (
             self.get_semi_latus_rectum() /
-            (1.0 + self.eccentricity * true_anomaly.cos());
+            (1.0 + self.eccentricity * true_anomaly.cos())
+        ).abs();
     }
 
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
