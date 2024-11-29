@@ -475,6 +475,28 @@ fn orbit_conversion_base_test(orbit: Orbit, what: &str) {
             assert_eq!(original_altitudes[i].to_bits(), reexpanded_altitudes[i].to_bits(), "{reexpanded_message}");
         }
     }
+    {
+        let original_slr = orbit.get_semi_latus_rectum();
+        let compact_slr = compact_orbit.get_semi_latus_rectum();
+        let reexpanded_slr = reexpanded_orbit.get_semi_latus_rectum();
+
+        let compact_message = format!("{compact_message} (semi-latus rectum)");
+        let reexpanded_message = format!("{reexpanded_message} (semi-latus rectum)");
+
+        assert_eq!(original_slr.to_bits(), compact_slr.to_bits(), "{compact_message}");
+        assert_eq!(original_slr.to_bits(), reexpanded_slr.to_bits(), "{reexpanded_message}");
+    }
+    {
+        let original_apoapsis = orbit.get_apoapsis();
+        let compact_apoapsis = compact_orbit.get_apoapsis();
+        let reexpanded_apoapsis = reexpanded_orbit.get_apoapsis();
+
+        let compact_message = format!("{compact_message} (apoapsis getter)");
+        let reexpanded_message = format!("{reexpanded_message} (apoapsis getter)");
+
+        assert_eq!(original_apoapsis.to_bits(), compact_apoapsis.to_bits(), "{compact_message}");
+        assert_eq!(original_apoapsis.to_bits(), reexpanded_apoapsis.to_bits(), "{reexpanded_message}");
+    }
 }
 
 #[test]
