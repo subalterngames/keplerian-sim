@@ -67,21 +67,61 @@ pub struct CompactOrbit {
     /// e < 1: ellipse  
     /// e = 1: parabola  
     /// e > 1: hyperbola  
+    /// 
+    /// See more: <https://en.wikipedia.org/wiki/Orbital_eccentricity>
     pub eccentricity: f64,
 
     /// The periapsis of the orbit, in meters.
+    /// 
+    /// The periapsis of an orbit is the distance at the closest point
+    /// to the parent body.
+    /// 
+    /// More simply, this is the "minimum altitude" of an orbit.
     pub periapsis: f64,
 
     /// The inclination of the orbit, in radians.
+    /// The inclination of an orbit is the angle between the plane of the
+    /// orbit and the reference plane.
+    /// 
+    /// In simple terms, it tells you how "tilted" the orbit is.
     pub inclination: f64,
 
     /// The argument of periapsis of the orbit, in radians.
+    /// 
+    /// Wikipedia:  
+    /// The argument of periapsis is the angle from the body's
+    /// ascending node to its periapsis, measured in the direction of
+    /// motion.  
+    /// <https://en.wikipedia.org/wiki/Argument_of_periapsis>
+    /// 
+    /// In simple terms, it tells you how, and in which direction,
+    /// the orbit "tilts".
     pub arg_pe: f64,
 
     /// The longitude of ascending node of the orbit, in radians.
+    /// 
+    /// Wikipedia:  
+    /// The longitude of ascending node is the angle from a specified
+    /// reference direction, called the origin of longitude, to the direction
+    /// of the ascending node, as measured in a specified reference plane.  
+    /// <https://en.wikipedia.org/wiki/Longitude_of_the_ascending_node>
+    /// 
+    /// In simple terms, it tells you how, and in which direction,
+    /// the orbit "tilts".
     pub long_asc_node: f64,
 
     /// The mean anomaly at orbit epoch, in radians.
+    /// 
+    /// For elliptic orbits, it's measured in radians and so are bounded
+    /// between 0 and tau; anything out of range will get wrapped around.  
+    /// For hyperbolic orbits, it's unbounded.
+    /// 
+    /// Wikipedia:  
+    /// The mean anomaly at epoch, `M_0`, is defined as the instantaneous mean
+    /// anomaly at a given epoch, `t_0`.  
+    /// <https://en.wikipedia.org/wiki/Mean_anomaly#Mean_anomaly_at_epoch>
+    /// 
+    /// In simple terms, this modifies the "offset" of the orbit progression.
     pub mean_anomaly: f64,
 }
 

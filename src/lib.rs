@@ -208,6 +208,9 @@ pub trait OrbitTrait {
     /// This function uses a generalization which uses
     /// eccentricity instead.
     /// 
+    /// This function returns infinity for parabolic orbits,
+    /// and negative values for hyperbolic orbits.
+    /// 
     /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
     /// 
     /// # Example
@@ -225,14 +228,16 @@ pub trait OrbitTrait {
 
     /// Gets the semi-minor axis of the orbit.
     /// 
-    /// In an elliptic orbit, the semi-minor axis is half of the "width" of the orbit.
+    /// In an elliptic orbit, the semi-minor axis is half of the maximum "width"
+    /// of the orbit.
     /// 
     /// Learn more: <https://en.wikipedia.org/wiki/Semi-major_and_semi-minor_axes>
     fn get_semi_minor_axis(&self) -> f64;
 
     /// Gets the semi-latus rectum of the orbit.
     /// 
-    /// Learn more: <https://en.wikipedia.org/wiki/Ellipse#Semi-latus_rectum>
+    /// Learn more: <https://en.wikipedia.org/wiki/Ellipse#Semi-latus_rectum>  
+    /// <https://en.wikipedia.org/wiki/Conic_section#Conic_parameters>
     fn get_semi_latus_rectum(&self) -> f64;
 
     /// Gets the linear eccentricity of the orbit, in meters.
