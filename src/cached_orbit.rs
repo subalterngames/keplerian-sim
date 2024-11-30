@@ -97,6 +97,11 @@ struct OrbitCachedCalculations {
 
     /// The transformation matrix to tilt the 2D planar orbit into 3D space.
     transformation_matrix: Matrix3x2<f64>,
+
+    /// A value based on the orbit's eccentricity, used to calculate
+    /// the true anomaly from the eccentric anomaly.  
+    /// https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
+    beta: f64,
 }
 // Initialization and cache management
 impl Orbit {
@@ -179,13 +184,15 @@ impl Orbit {
         let semi_minor_axis =
             semi_major_axis * (1.0 - eccentricity * eccentricity).abs().sqrt();
         let linear_eccentricity = semi_major_axis * eccentricity;
-        let transformation_matrix = Self::get_transformation_matrix(inclination, arg_pe, long_asc_node);        
+        let transformation_matrix = Self::get_transformation_matrix(inclination, arg_pe, long_asc_node);
+        let beta = eccentricity / (1.0 + (1.0 - eccentricity * eccentricity).sqrt());
 
         return OrbitCachedCalculations {
             semi_major_axis,
             semi_minor_axis,
             linear_eccentricity,
-            transformation_matrix
+            transformation_matrix,
+            beta
         };
     }
 
@@ -633,12 +640,11 @@ impl OrbitTrait for Orbit {
     fn get_true_anomaly_at_eccentric_anomaly(&self, eccentric_anomaly: f64) -> f64 {
         if self.eccentricity < 1.0 {
             // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
-            let eccentricity = self.eccentricity;
-            let beta = eccentricity / (1.0 + (1.0 - eccentricity * eccentricity).sqrt());
+            let beta = self.cache.beta;
+            let (s, c) = eccentric_anomaly.sin_cos();
     
             return eccentric_anomaly + 2.0 * 
-                (beta * eccentric_anomaly.sin() / (1.0 - beta * eccentric_anomaly.cos()))
-                .atan();
+                (beta * s / (1.0 - beta * c)).atan();
         } else {
             // From the presentation "Spacecraft Dynamics and Control"  
             // by Matthew M. Peet  
