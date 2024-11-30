@@ -370,6 +370,9 @@ pub trait OrbitTrait {
     /// 
     /// This function is faster than the function which takes mean anomaly as input,
     /// as the eccentric anomaly is hard to calculate.
+    /// 
+    /// **This function returns a NaN for parabolic orbits** because of a
+    /// divide-by-zero.
     fn get_true_anomaly_at_eccentric_anomaly(&self, eccentric_anomaly: f64) -> f64;
 
     /// Gets the true anomaly at a given mean anomaly in the orbit.

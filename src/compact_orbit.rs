@@ -629,10 +629,19 @@ impl OrbitTrait for CompactOrbit {
                 (beta * eccentric_anomaly.sin() / (1.0 - beta * eccentric_anomaly.cos()))
                 .atan();
         } else {
-            // idk copilot got this
+            // From the presentation "Spacecraft Dynamics and Control"  
+            // by Matthew M. Peet  
+            // https://control.asu.edu/Classes/MAE462/462Lecture05.pdf  
+            // Slide 25 of 27  
+            // Section "The Method for Hyperbolic Orbits"  
+            //
+            // tan(f/2) = sqrt((e+1)/(e-1))*tanh(H/2)
+            // f/2 = atan(sqrt((e+1)/(e-1))*tanh(H/2))
+            // f = 2atan(sqrt((e+1)/(e-1))*tanh(H/2))
+
             return 2.0 *
                 ((self.eccentricity + 1.0) / (self.eccentricity - 1.0)).sqrt().atan() *
-                eccentric_anomaly.tanh();
+                (eccentric_anomaly * 0.5).tanh();
         }
     }
 
@@ -653,7 +662,7 @@ impl OrbitTrait for CompactOrbit {
     }
 
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
-        return time * TAU + self.mean_anomaly;
+        return t * TAU + self.mean_anomaly;
     }
 
     fn get_eccentricity         (&self) -> f64 { self.eccentricity }
