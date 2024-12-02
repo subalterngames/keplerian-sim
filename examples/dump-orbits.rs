@@ -1,5 +1,6 @@
 use keplerian_sim::{OrbitTrait, Orbit};
 use std::fs;
+use core::f64::NAN;
 
 const SIMULATION_TICKS: usize = 10_000;
 const CSV_PATH: &str = "out/output-orbit-dump.csv";
@@ -46,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: 0.0,
         },
         OrbitWrapper {
-            name: "Elliptic",
+            name: "Eccentricity 0.85",
             orbit: Orbit::new(
                 0.85,
                 1.0,
@@ -59,7 +60,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: 0.0,
         },
         OrbitWrapper {
-            name: "Parabolic",
+            name: "Eccentricity 0.99",
+            orbit: Orbit::new(
+                0.99,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            time_mult: 1.0,
+            time_offset: 0.0,
+        },
+        OrbitWrapper {
+            name: "Eccentricity 1",
             orbit: Orbit::new(
                 1.0,
                 1.0,
@@ -72,7 +86,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -5.0,
         },
         OrbitWrapper {
-            name: "Barely Hyperbolic 1",
+            name: "Eccentricity 1.001",
             orbit: Orbit::new(
                 1.001,
                 1.0,
@@ -85,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -5.0,
         },
         OrbitWrapper {
-            name: "Barely Hyperbolic 2",
+            name: "Eccentricity 1.002",
             orbit: Orbit::new(
                 1.002,
                 1.0,
@@ -98,7 +112,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -5.0,
         },
         OrbitWrapper {
-            name: "Barely Hyperbolic 3",
+            name: "Eccentricity 1.005",
             orbit: Orbit::new(
                 1.005,
                 1.0,
@@ -111,7 +125,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -5.0,
         },
         OrbitWrapper {
-            name: "Barely Hyperbolic 4",
+            name: "Eccentricity 1.01",
             orbit: Orbit::new(
                 1.01,
                 1.0,
@@ -124,7 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -5.0,
         },
         OrbitWrapper {
-            name: "Barely Hyperbolic 5",
+            name: "Eccentricity 1.02",
             orbit: Orbit::new(
                 1.02,
                 1.0,
@@ -137,7 +151,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -5.0,
         },
         OrbitWrapper {
-            name: "Hyperbolic",
+            name: "Eccentricity 1.1",
+            orbit: Orbit::new(
+                1.1,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            time_mult: 10.0,
+            time_offset: -5.0,
+        },
+        OrbitWrapper {
+            name: "Eccentricity 1.5",
+            orbit: Orbit::new(
+                1.5,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ),
+            time_mult: 10.0,
+            time_offset: -5.0,
+        },
+        OrbitWrapper {
+            name: "Eccentricity 2.5",
             orbit: Orbit::new(
                 2.5,
                 1.0,
@@ -150,7 +190,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -5.0,
         },
         OrbitWrapper {
-            name: "Very Hyperbolic",
+            name: "Eccentricity 12",
             orbit: Orbit::new(
                 12.0,
                 1.0,
@@ -163,7 +203,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -25.0,
         },
         OrbitWrapper {
-            name: "Extreme Hyperbolic",
+            name: "Eccentricity 1000",
             orbit: Orbit::new(
                 1000.0,
                 1.0,
@@ -176,7 +216,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             time_offset: -500.0,
         },
         OrbitWrapper {
-            name: "Voyager",
+            name: "Escape trajectory",
             orbit: Orbit::new(
                 2.0,
                 1.496e11,
@@ -248,19 +288,28 @@ fn create_csv(logs: &Vec<OrbitLog>) -> String {
     let mut string = String::new();
     string += "orbit,iter,time,mean-anom,ecc-anom,angle,flat-x,flat-y,dfx,dfy,x,y,z,dx,dy,dz,altitude,d-altitude,speed,accel\n";
 
+    let mut prev_orbit_type: &str = "";
     let mut prev_flat_pos: Option<(f64, f64)> = None;
     let mut prev_pos: Option<(f64, f64, f64)> = None;
     let mut prev_altitude: Option<f64> = None;
     let mut prev_speed: Option<f64> = None;
 
     for log in logs {
+        if prev_orbit_type != log.name {
+            prev_orbit_type = log.name;
+            prev_flat_pos = None;
+            prev_pos = None;
+            prev_altitude = None;
+            prev_speed = None;
+        }
+
         let (flat_x, flat_y) = (log.flat_x, log.flat_y);
         let (x, y, z) = (log.x, log.y, log.z);
         let altitude = log.altitude;
 
-        let (prev_flat_x, prev_flat_y) = prev_flat_pos.unwrap_or((0.0, 0.0));
-        let (prev_x, prev_y, prev_z) = prev_pos.unwrap_or((0.0, 0.0, 0.0));
-        let prev_altitude_unwrapped = prev_altitude.unwrap_or(0.0);
+        let (prev_flat_x, prev_flat_y) = prev_flat_pos.unwrap_or((NAN, NAN));
+        let (prev_x, prev_y, prev_z) = prev_pos.unwrap_or((NAN, NAN, NAN));
+        let prev_altitude_unwrapped = prev_altitude.unwrap_or(NAN);
 
         let dx = x - prev_x;
         let dy = y - prev_y;
@@ -272,7 +321,7 @@ fn create_csv(logs: &Vec<OrbitLog>) -> String {
         let d_altitude = altitude - prev_altitude_unwrapped;
 
         let speed = (dx.powi(2) + dy.powi(2) + dz.powi(2)).sqrt();
-        let accel = speed - prev_speed.unwrap_or(0.0);
+        let accel = speed - prev_speed.unwrap_or(NAN);
 
         string += &format!(
             "{orbit},{iter},{time},{mean_anom},{ecc_anom},{angle},{flat_x},{flat_y},{dfx},{dfy},{x},{y},{z},{dx},{dy},{dz},{altitude},{d_altitude},{speed},{accel}\n",
