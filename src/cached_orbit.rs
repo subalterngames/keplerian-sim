@@ -340,8 +340,6 @@ impl Orbit {
 
     /// Get an initial guess for the hyperbolic eccentric anomaly of an orbit.
     /// 
-    /// Returns a tuple containing the initial guess and the approximate error of the guess.
-    /// 
     /// From the paper:  
     /// "A new method for solving the hyperbolic Kepler equation"  
     /// by Baisheng Wu et al.  
