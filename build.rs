@@ -40,7 +40,7 @@ const PIECEWISE_CUTOFFS: [f64; 15] = [
     0.145, 0.375, 0.625, 0.875,
     1.125, 1.375, 1.625, 1.875,
     2.250, 2.750, 3.250, 3.750,
-    4.250, 4.750, 999.9,
+    4.250, 4.750, f64::MAX,
 ];
 
 /// Generates a piecewise function for the Pade approximations
@@ -131,7 +131,7 @@ fn generate_sinh_approximator() -> String {
         let cutoff = PIECEWISE_CUTOFFS[i];
 
         code += format!(
-            r"if f < {cutoff} {{
+            r"if f < {cutoff:.3} {{
                 return SinhApprParams {{
                     a: {a:.80}, s: {s:.80},
                     p_1: {p_1:.80}, p_2: {p_2:.80}, p_3: {p_3:.80},
