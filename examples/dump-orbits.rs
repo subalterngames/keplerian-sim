@@ -29,6 +29,8 @@ struct OrbitLog<'a> {
     flat_y: f64,
 
     altitude: f64,
+
+    expected_speed: f64,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -252,6 +254,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let (flat_x, flat_y) = orbit.get_flat_position_at_angle(angle);
             let (x, y, z) = orbit.get_position_at_angle(angle);
 
+            let expected_speed =
+                (2.0 / altitude - 1.0 / orbit.get_semi_major_axis()).sqrt();
+
             logs.push(OrbitLog {
                 name,
                 iter,
@@ -265,6 +270,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 flat_x,
                 flat_y,
                 altitude,
+                expected_speed,
             });
         }
     }
@@ -286,7 +292,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn create_csv(logs: &Vec<OrbitLog>) -> String {
     let mut string = String::new();
-    string += "orbit,iter,time,mean-anom,ecc-anom,angle,flat-x,flat-y,dfx,dfy,x,y,z,dx,dy,dz,altitude,d-altitude,speed,accel\n";
+    string += "orbit,iter,time,mean-anom,ecc-anom,angle,flat-x,flat-y,dfx,dfy,x,y,z,dx,dy,dz,altitude,d-altitude,speed,accel,expected-speed\n";
 
     let mut prev_orbit_type: &str = "";
     let mut prev_flat_pos: Option<(f64, f64)> = None;
@@ -324,13 +330,14 @@ fn create_csv(logs: &Vec<OrbitLog>) -> String {
         let accel = speed - prev_speed.unwrap_or(NAN);
 
         string += &format!(
-            "{orbit},{iter},{time},{mean_anom},{ecc_anom},{angle},{flat_x},{flat_y},{dfx},{dfy},{x},{y},{z},{dx},{dy},{dz},{altitude},{d_altitude},{speed},{accel}\n",
+            "{orbit},{iter},{time},{mean_anom},{ecc_anom},{angle},{flat_x},{flat_y},{dfx},{dfy},{x},{y},{z},{dx},{dy},{dz},{altitude},{d_altitude},{speed},{accel},{expected_speed}\n",
             orbit = log.name,
             iter = log.iter,
             time = log.time,
             mean_anom = log.mean_anom,
             ecc_anom = log.ecc_anom,
             angle = log.angle,
+            expected_speed = log.expected_speed,
         );
 
         prev_flat_pos = Some((flat_x, flat_y));
