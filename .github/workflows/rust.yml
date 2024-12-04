@@ -1,4 +1,4 @@
-name: Rust Tests
+name: Rust Tests and MSRV
 
 on:
   push:
@@ -16,5 +16,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Run tests
+
+    - name: Parse MSRV from manifest
+      id: msrv
+      run: |
+        MSRV=$(grep -oP 'rust-version\s*=\s*"\K[0-9.]+(?=")' Cargo.toml)
+        echo "MSRV version: $MSRV"
+        echo "::set-output name=msrv::$MSRV"
+
+    - name: Set up Rust toolchain for MSRV
+      run: |
+        rustup install ${{ steps.msrv.outputs.msrv }}
+        rustup override set ${{ steps.msrv.outputs.msrv }}
+
+    - name: Check all targets with MSRV
+      run: cargo check --all-targets && cargo check --release --all-targets
+      
+    - name: Run tests with MSRV
       run: cargo test --verbose
