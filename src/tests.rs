@@ -394,8 +394,8 @@ fn orbit_conversion_base_test(orbit: Orbit, what: &str) {
         };
 
         for i in 0..original_true.len() {
-            assert_eq!(original_true[i], compact_true[i], "{compact_message} (true anomaly) (i={i})");
-            assert_eq!(original_true[i], reexpanded_true[i], "{reexpanded_message} (true anomaly) (i={i})");
+            assert_eq!(original_true[i].to_bits(), compact_true[i].to_bits(), "{compact_message} (true anomaly) (i={i})");
+            assert_eq!(original_true[i].to_bits(), reexpanded_true[i].to_bits(), "{reexpanded_message} (true anomaly) (i={i})");
         }
     }
     {

@@ -637,9 +637,10 @@ impl OrbitTrait for CompactOrbit {
             // f/2 = atan(sqrt((e+1)/(e-1))*tanh(H/2))
             // f = 2atan(sqrt((e+1)/(e-1))*tanh(H/2))
 
-            return 2.0 *
-                ((self.eccentricity + 1.0) / (self.eccentricity - 1.0)).sqrt().atan() *
-                (eccentric_anomaly * 0.5).tanh();
+            return 2.0 * (
+                ((self.eccentricity + 1.0) / (self.eccentricity - 1.0)).sqrt() *
+                (eccentric_anomaly * 0.5).tanh()
+            ).atan();
         }
     }
 

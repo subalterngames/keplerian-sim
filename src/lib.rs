@@ -371,8 +371,8 @@ pub trait OrbitTrait {
     /// This function is faster than the function which takes mean anomaly as input,
     /// as the eccentric anomaly is hard to calculate.
     /// 
-    /// **This function returns a NaN for parabolic orbits** because of a
-    /// divide-by-zero.
+    /// This function returns +/- pi for parabolic orbits due to how the equation works,
+    /// and so **may result in infinities when combined with other functions**. 
     fn get_true_anomaly_at_eccentric_anomaly(&self, eccentric_anomaly: f64) -> f64;
 
     /// Gets the true anomaly at a given mean anomaly in the orbit.
@@ -386,6 +386,9 @@ pub trait OrbitTrait {
     /// of the ellipse.
     /// 
     /// \- [Wikipedia](https://en.wikipedia.org/wiki/True_anomaly)
+    /// 
+    /// This function returns +/- pi for parabolic orbits due to how the equation works,
+    /// and so **may result in infinities when combined with other functions**. 
     fn get_true_anomaly(&self, mean_anomaly: f64) -> f64 {
         self.get_true_anomaly_at_eccentric_anomaly(
             self.get_eccentric_anomaly(mean_anomaly)
@@ -433,6 +436,9 @@ pub trait OrbitTrait {
     /// of the ellipse.
     /// 
     /// \- [Wikipedia](https://en.wikipedia.org/wiki/True_anomaly)
+    /// 
+    /// This function returns +/- pi for parabolic orbits due to how the equation works,
+    /// and so **may result in infinities when combined with other functions**. 
     fn get_true_anomaly_at_time(&self, t: f64) -> f64 {
         self.get_true_anomaly(
             self.get_mean_anomaly_at_time(t)
@@ -518,6 +524,9 @@ pub trait OrbitTrait {
     /// `t` (time) value is unbounded.  
     /// Note that due to floating-point imprecision, values of extreme
     /// magnitude may not be accurate.
+    /// 
+    /// **This function returns infinity for parabolic orbits** due to how the equation for
+    /// true anomaly works.
     fn get_altitude_at_time(&self, t: f64) -> f64 {
         self.get_altitude_at_angle(
             self.get_true_anomaly_at_time(t)
@@ -538,6 +547,9 @@ pub trait OrbitTrait {
     /// `t` (time) value is unbounded.  
     /// Note that due to floating-point imprecision, values of extreme
     /// magnitude may not be accurate.
+    /// 
+    /// **This function returns non-finite numbers for parabolic orbits**
+    /// due to how the equation for true anomaly works.
     fn get_position_at_time(&self, t: f64) -> Vec3 {
         self.get_position_at_angle(
             self.get_true_anomaly_at_time(t)
@@ -561,6 +573,9 @@ pub trait OrbitTrait {
     /// `t` (time) value is unbounded.  
     /// Note that due to floating-point imprecision, values of extreme
     /// magnitude may not be accurate.
+    /// 
+    /// **This function returns non-finite numbers for parabolic orbits**
+    /// due to how the equation for true anomaly works.
     fn get_flat_position_at_time(&self, t: f64) -> Vec2 {
         self.get_flat_position_at_angle(
             self.get_true_anomaly_at_time(t)
