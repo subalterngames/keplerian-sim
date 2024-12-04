@@ -8,7 +8,7 @@ keywords = ["kepler", "orbit", "simulation", "patchedconics", "kerbalspaceprogra
 categories = ["aerospace::simulation", "simulation", "science"]
 include = ["/src", "README.md", "LICENSE", "Cargo.toml", "Cargo.lock", "CREDITS.md"]
 repository = "https://github.com/Not-A-Normal-Robot/keplerian-sim"
-rust-version = "1.60.0"
+rust-version = "1.74.0"
 
 [dev-dependencies]
 criterion = "0.5.1"
