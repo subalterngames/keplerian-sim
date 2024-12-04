@@ -621,11 +621,11 @@ impl OrbitTrait for CompactOrbit {
         if self.eccentricity < 1.0 {
             // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
             let eccentricity = self.eccentricity;
+            let (s, c) = eccentric_anomaly.sin_cos();
             let beta = eccentricity / (1.0 + (1.0 - eccentricity * eccentricity).sqrt());
     
             return eccentric_anomaly + 2.0 * 
-                (beta * eccentric_anomaly.sin() / (1.0 - beta * eccentric_anomaly.cos()))
-                .atan();
+                (beta * s / (1.0 - beta * c)).atan();
         } else {
             // From the presentation "Spacecraft Dynamics and Control"  
             // by Matthew M. Peet  
