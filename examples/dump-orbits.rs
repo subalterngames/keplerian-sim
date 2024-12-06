@@ -282,8 +282,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("CSV file generated, length: {} KiB", csv.len() / 1024);
     println!(">> Writing CSV file to '{CSV_PATH}'");
 
-    let _ = fs::write(CSV_PATH, csv)
-        .inspect_err(|err| eprintln!("Failed to write CSV file: {err}"));
+    let result = fs::write(CSV_PATH, csv);
+
+    if let Err(e) = result {
+        eprintln!("Failed to write CSV file: {e}");
+    }
 
     println!(">> All done!");
 

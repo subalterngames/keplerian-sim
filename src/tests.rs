@@ -703,8 +703,11 @@ fn test_sinh_approx_lt5() {
         );
     }
 
-    let _ = fs::write(OUTPUT_CSV_PATH, csv)
-        .inspect_err(|e| println!("Failed to write CSV: {}", e));
+    let res = fs::write(OUTPUT_CSV_PATH, csv);
+    
+    if let Err(e) = res {
+        println!("Failed to write CSV: {e}");
+    }
 
     for i in 0..ITERATIONS {
         assert!(
