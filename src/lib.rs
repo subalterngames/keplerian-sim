@@ -299,7 +299,7 @@ pub trait OrbitTrait {
     fn get_linear_eccentricity(&self) -> f64;
 
     /// Gets the apoapsis of the orbit.  
-    /// Returns infinity for parabolic and hyperbolic orbits.  
+    /// Returns infinity for parabolic orbits.  
     /// Returns negative values for hyperbolic orbits.  
     ///
     /// # Examples
@@ -314,11 +314,11 @@ pub trait OrbitTrait {
     /// assert!(orbit.get_apoapsis().is_infinite());
     ///
     /// orbit.set_eccentricity(2.0); // Hyperbolic
-    /// assert!(orbit.get_apoapsis().is_infinite());
+    /// assert!(orbit.get_apoapsis() < 0.0);
     /// ```
     fn get_apoapsis(&self) -> f64 {
         let eccentricity = self.get_eccentricity();
-        if eccentricity >= 1.0 {
+        if eccentricity == 1.0 {
             f64::INFINITY
         } else {
             self.get_semi_major_axis() * (1.0 + eccentricity)
