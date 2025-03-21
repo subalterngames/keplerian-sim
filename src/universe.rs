@@ -1,5 +1,7 @@
 use core::fmt;
 
+use glam::DVec3;
+
 use super::Body;
 
 /// Struct that represents the simulation of the universe.
@@ -18,12 +20,12 @@ pub struct Universe {
     pub time_step: f64,
 
     /// The gravitational constant, in m^3 kg^-1 s^-2.
-    pub g: f64
+    pub g: f64,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BodyRelation {
     pub parent: Option<usize>,
-    pub satellites: Vec<usize>
+    pub satellites: Vec<usize>,
 }
 
 impl Universe {
@@ -32,20 +34,13 @@ impl Universe {
         let time_step = time_step.unwrap_or(3.6e3);
         let g = g.unwrap_or(6.67430e-11);
 
-        return Universe {
-            bodies: Vec::new(), body_relations: Vec::new(), time: 0.0, time_step, g
-        };
-    }
-
-    /// Creates an empty universe with default parameters.
-    pub fn new_default() -> Universe {
-        return Universe {
+        Universe {
             bodies: Vec::new(),
             body_relations: Vec::new(),
             time: 0.0,
-            time_step: 3.6e3,
-            g: 6.67430e-11
-        };
+            time_step,
+            g,
+        }
     }
 
     /// Adds a body to the universe.
@@ -55,22 +50,20 @@ impl Universe {
     pub fn add_body(&mut self, body: Body, satellite_of: Option<usize>) -> usize {
         self.bodies.push(body);
         if let Some(parent) = satellite_of {
-            self.body_relations.push(
-                BodyRelation {
-                    parent: Some(parent),
-                    satellites: Vec::new()
-                }
-            );
-            self.body_relations[parent].satellites.push(self.bodies.len() - 1);
+            self.body_relations.push(BodyRelation {
+                parent: Some(parent),
+                satellites: Vec::new(),
+            });
+            self.body_relations[parent]
+                .satellites
+                .push(self.bodies.len() - 1);
         } else {
-            self.body_relations.push(
-                BodyRelation {
-                    parent: None,
-                    satellites: Vec::new()
-                }
-            );
+            self.body_relations.push(BodyRelation {
+                parent: None,
+                satellites: Vec::new(),
+            });
         }
-        return self.bodies.len() - 1;
+        self.bodies.len() - 1
     }
 
     /// Removes a body from the universe.
@@ -78,11 +71,11 @@ impl Universe {
     pub fn remove_body(&mut self, body_index: usize) -> Body {
         let body = self.bodies.remove(body_index);
         let relations = &mut self.body_relations[body_index];
-        
-        if let Some(_) = relations.parent {
+
+        if relations.parent.is_some() {
             relations.satellites.retain(|&x| x != body_index);
         }
-        
+
         let satellites_to_remove = relations.satellites.clone();
 
         self.body_relations.remove(body_index);
@@ -91,27 +84,27 @@ impl Universe {
             self.remove_body(satellite);
         }
 
-        return body;
+        body
     }
 
     /// Gets a Vec of all bodies in the universe.
     pub fn get_bodies(&self) -> &Vec<Body> {
-        return &self.bodies;
+        &self.bodies
     }
 
     /// Gets a Vec of all body relations in the universe.
     pub fn get_body_relations(&self) -> &Vec<BodyRelation> {
-        return &self.body_relations;
+        &self.body_relations
     }
 
     /// Gets a mutable reference to a body in the universe.
     pub fn get_body_mut(&mut self, index: usize) -> &mut Body {
-        return &mut self.bodies[index];
+        &mut self.bodies[index]
     }
 
     /// Gets an immutable reference to a body in the unvierse.
     pub fn get_body(&self, index: usize) -> &Body {
-        return &self.bodies[index];
+        &self.bodies[index]
     }
 
     /// Gets the index of the first body with a given name.
@@ -121,7 +114,7 @@ impl Universe {
                 return Some(i);
             }
         }
-        return None;
+        None
     }
 
     /// Gets the index of the last body with a given name.
@@ -131,15 +124,15 @@ impl Universe {
                 return Some(i);
             }
         }
-        return None;
+        None
     }
 
     /// Advances the simulation by a tick.
     pub fn tick(&mut self) {
         for body in &mut self.bodies {
-            if body.orbit.is_none() { continue; }
-            body.progress_orbit(self.time_step, self.g)
-                .unwrap();
+            if body.orbit.is_some() {
+                let _ = body.progress_orbit(self.time_step, self.g);
+            }
         }
     }
 
@@ -151,32 +144,44 @@ impl Universe {
     }
 
     /// Gets the absolute position of a body in the universe.
-    /// 
+    ///
     /// Each coordinate is in meters.
-    pub fn get_body_position(&self, index: usize) -> (f64, f64, f64) {
+    pub fn get_body_position(&self, index: usize) -> DVec3 {
         let body = &self.bodies[index];
 
-        let mut position = body.get_relative_position();
-
-        if let Some(parent) = self.body_relations[index].parent {
-            let parent_position = self.get_body_position(parent);
-            position.0 += parent_position.0;
-            position.1 += parent_position.1;
-            position.2 += parent_position.2;
+        match self.body_relations[index].parent {
+            Some(parent) => {
+                let body_position = self.get_body_position(parent);
+                match body.get_relative_position() {
+                    Some(position) => position + self.get_body_position(parent),
+                    None => body_position,
+                }
+            }
+            None => DVec3::ZERO,
         }
-
-        return position;
     }
 }
 
 impl Default for Universe {
-    fn default() -> Self {
-        return Universe::new_default();
+    /// Creates an empty universe with default parameters.
+    fn default() -> Universe {
+        Universe {
+            bodies: Vec::new(),
+            body_relations: Vec::new(),
+            time: 0.0,
+            time_step: 3.6e3,
+            g: 6.67430e-11,
+        }
     }
 }
 
 impl fmt::Display for Universe {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Universe with {} bodies, t={}", self.bodies.len(), self.time)
+        write!(
+            f,
+            "Universe with {} bodies, t={}",
+            self.bodies.len(),
+            self.time
+        )
     }
 }

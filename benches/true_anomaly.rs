@@ -1,6 +1,6 @@
-use keplerian_sim::{Orbit, CompactOrbit, OrbitTrait};
-use std::hint::black_box;
 use criterion::{criterion_group, criterion_main, Criterion};
+use keplerian_sim::{CompactOrbit, Orbit, OrbitTrait};
+use std::hint::black_box;
 
 const POLL_ANGLES: usize = 1024;
 
@@ -25,37 +25,30 @@ fn poll_true_compact(orbit: &CompactOrbit) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let orbit = Orbit::new_default();
+    let orbit = Orbit::default();
 
-    c.bench_function("true poll cached", |b| b.iter(||
-        poll_true_cached(black_box(&orbit))
-    ));
+    c.bench_function("true poll cached", |b| {
+        b.iter(|| poll_true_cached(black_box(&orbit)))
+    });
 
     let compact: CompactOrbit = orbit.into();
 
-    c.bench_function("true poll compact", |b| b.iter(||
-        poll_true_compact(black_box(&compact))
-    ));
+    c.bench_function("true poll compact", |b| {
+        b.iter(|| poll_true_compact(black_box(&compact)))
+    });
 
     // hyperbolic
-    let orbit = Orbit::new(
-        2.4,
-        1.0,
-        0.98,
-        3.01,
-        1.01,
-        2.55
-    );
+    let orbit = Orbit::new(2.4, 1.0, 0.98, 3.01, 1.01, 2.55);
 
-    c.bench_function("true poll hyp cached", |b| b.iter(||
-        poll_true_cached(black_box(&orbit))
-    ));
+    c.bench_function("true poll hyp cached", |b| {
+        b.iter(|| poll_true_cached(black_box(&orbit)))
+    });
 
     let compact: CompactOrbit = orbit.into();
 
-    c.bench_function("true poll hyp compact", |b| b.iter(||
-        poll_true_compact(black_box(&compact))
-    ));
+    c.bench_function("true poll hyp compact", |b| {
+        b.iter(|| poll_true_compact(black_box(&compact)))
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);
