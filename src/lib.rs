@@ -45,9 +45,9 @@
 //! use keplerian_sim::{Orbit, OrbitTrait};
 //!
 //! # fn main() {
-//! #    // Create a perfectly circular orbit with a radius of 1 meter
-//! #    let orbit = Orbit::default();
-//! #    assert_eq!(orbit.get_position_at_time(0.0), DVec3::new(1.0, 0.0, 0.0));
+//! // Create a perfectly circular orbit with a radius of 1 meter
+//! let orbit = Orbit::default();
+//! assert_eq!(orbit.get_position_at_time(0.0), DVec3::new(1.0, 0.0, 0.0));
 //! # }
 //! #
 //! ```
@@ -221,8 +221,8 @@ impl Matrix3x2 {
 /// #  
 /// #     let compact = CompactOrbit::default();
 /// #     accepts_orbit(&compact);
-/// #     let not_orbit = (0.0, 1.0);
-/// #     accepts_orbit(&not_orbit);
+///       let not_orbit = (0.0, 1.0);
+///       accepts_orbit(&not_orbit);
 /// # }
 /// ```
 pub trait OrbitTrait {
