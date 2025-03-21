@@ -1,3 +1,5 @@
+use glam::DVec3;
+
 use crate::{Orbit, OrbitTrait};
 use core::f64::consts::TAU as TAU;
 
@@ -47,7 +49,7 @@ impl Body {
     /// 
     /// Currently, this function returns the Earth.  
     /// However, do not rely on this behavior, as it may change in the future.
-    pub fn new_default() -> Body {
+    pub fn default() -> Body {
         return Body {
             name: "Earth".to_string(),
             mass: 5.972e24,
@@ -93,22 +95,18 @@ impl Body {
             self.progress = self.progress.rem_euclid(1.0);
         }
 
-        return Ok(());
+        Ok(())
     }
     /// Gets the relative position of this body, in meters.
     /// 
     /// The position is relative to the parent body, if there is one.  
-    /// If the body is not orbiting anything, this function will return
-    /// (0, 0, 0).
+    /// If the body is not orbiting anything, this function will return None.
     /// 
     /// Each coordinate is in meters.
-    pub fn get_relative_position(&self) -> (f64, f64, f64) {
-        let orbit = self.orbit.as_ref();
-
-        if orbit.is_none() {
-            return (0.0, 0.0, 0.0);
+    pub fn get_relative_position(&self) -> Option<DVec3> {
+        match self.orbit.as_ref() {
+            Some(orbit) => Some(orbit.get_position_at_time(self.progress)),
+            None => None
         }
-
-        return orbit.unwrap().get_position_at_time(self.progress);
     }
 }

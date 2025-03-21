@@ -32,3 +32,6 @@ harness = false
 [[bench]]
 name = "position_time"
 harness = false
+
+[dependencies]
+glam = "0.30.1"

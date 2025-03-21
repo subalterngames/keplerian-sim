@@ -1,9 +1,11 @@
 use core::fmt;
 
+use glam::DVec3;
+
 use super::Body;
 
 /// Struct that represents the simulation of the universe.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Universe {
     /// The celestial bodies in the universe.
     bodies: Vec<Body>,
@@ -38,7 +40,7 @@ impl Universe {
     }
 
     /// Creates an empty universe with default parameters.
-    pub fn new_default() -> Universe {
+    pub fn default() -> Universe {
         return Universe {
             bodies: Vec::new(),
             body_relations: Vec::new(),
@@ -153,25 +155,21 @@ impl Universe {
     /// Gets the absolute position of a body in the universe.
     /// 
     /// Each coordinate is in meters.
-    pub fn get_body_position(&self, index: usize) -> (f64, f64, f64) {
+    pub fn get_body_position(&self, index: usize) -> DVec3 {
         let body = &self.bodies[index];
 
-        let mut position = body.get_relative_position();
-
-        if let Some(parent) = self.body_relations[index].parent {
-            let parent_position = self.get_body_position(parent);
-            position.0 += parent_position.0;
-            position.1 += parent_position.1;
-            position.2 += parent_position.2;
+        match self.body_relations[index].parent {
+            Some(parent) => {
+                let body_position = self.get_body_position(parent);
+                match body.get_relative_position() {
+                    Some(position) => {
+                        position + self.get_body_position(parent)
+                    }
+                    None => body_position
+                }
+            }
+            None => DVec3::ZERO
         }
-
-        return position;
-    }
-}
-
-impl Default for Universe {
-    fn default() -> Self {
-        return Universe::new_default();
     }
 }
 

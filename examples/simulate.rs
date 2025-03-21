@@ -14,7 +14,7 @@ fn main() {
 }
 
 fn generate_solar_system<'a>() -> Universe {
-    let mut universe = Universe::new_default();
+    let mut universe = Universe::default();
     
     let sun = body_presets::stars::the_sun(false);
     let sun_idx = universe.add_body(sun, None);

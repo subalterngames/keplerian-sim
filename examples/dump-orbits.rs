@@ -1,3 +1,4 @@
+use glam::{DVec2, DVec3};
 use keplerian_sim::{OrbitTrait, Orbit};
 use std::fs;
 use core::f64::NAN;
@@ -21,12 +22,8 @@ struct OrbitLog<'a> {
     ecc_anom: f64,
     angle: f64,
 
-    x: f64,
-    y: f64,
-    z: f64,
-    
-    flat_x: f64,
-    flat_y: f64,
+    position: DVec3,
+    flat_position: DVec2,
 
     altitude: f64,
 
@@ -251,8 +248,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let angle = orbit.get_true_anomaly_at_eccentric_anomaly(ecc_anom);
 
             let altitude = orbit.get_altitude_at_angle(angle);
-            let (flat_x, flat_y) = orbit.get_flat_position_at_angle(angle);
-            let (x, y, z) = orbit.get_position_at_angle(angle);
+            let flat_position = orbit.get_flat_position_at_angle(angle);
+            let position = orbit.get_position_at_angle(angle);
 
             let expected_speed =
                 (2.0 / altitude - 1.0 / orbit.get_semi_major_axis()).sqrt();
@@ -264,11 +261,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 mean_anom,
                 ecc_anom,
                 angle,
-                x,
-                y,
-                z,
-                flat_x,
-                flat_y,
+                position,
+                flat_position,
                 altitude,
                 expected_speed,
             });
@@ -298,8 +292,8 @@ fn create_csv(logs: &Vec<OrbitLog>) -> String {
     string += "orbit,iter,time,mean-anom,ecc-anom,angle,flat-x,flat-y,dfx,dfy,x,y,z,dx,dy,dz,altitude,d-altitude,speed,accel,expected-speed\n";
 
     let mut prev_orbit_type: &str = "";
-    let mut prev_flat_pos: Option<(f64, f64)> = None;
-    let mut prev_pos: Option<(f64, f64, f64)> = None;
+    let mut prev_flat_pos: Option<DVec2> = None;
+    let mut prev_pos: Option<DVec3> = None;
     let mut prev_altitude: Option<f64> = None;
     let mut prev_speed: Option<f64> = None;
 
@@ -312,28 +306,23 @@ fn create_csv(logs: &Vec<OrbitLog>) -> String {
             prev_speed = None;
         }
 
-        let (flat_x, flat_y) = (log.flat_x, log.flat_y);
-        let (x, y, z) = (log.x, log.y, log.z);
         let altitude = log.altitude;
 
-        let (prev_flat_x, prev_flat_y) = prev_flat_pos.unwrap_or((NAN, NAN));
-        let (prev_x, prev_y, prev_z) = prev_pos.unwrap_or((NAN, NAN, NAN));
+        let prev_flat_position = prev_flat_pos.unwrap_or(DVec2::NAN);
+        let prev_position = prev_pos.unwrap_or(DVec3::NAN);
         let prev_altitude_unwrapped = prev_altitude.unwrap_or(NAN);
 
-        let dx = x - prev_x;
-        let dy = y - prev_y;
-        let dz = z - prev_z;
+        let d = log.position - prev_position;
 
-        let dfx = flat_x - prev_flat_x;
-        let dfy = flat_y - prev_flat_y;
+        let df = log.flat_position - prev_flat_position;
 
         let d_altitude = altitude - prev_altitude_unwrapped;
 
-        let speed = (dx.powi(2) + dy.powi(2) + dz.powi(2)).sqrt();
+        let speed = df.length();
         let accel = speed - prev_speed.unwrap_or(NAN);
 
         string += &format!(
-            "{orbit},{iter},{time},{mean_anom},{ecc_anom},{angle},{flat_x},{flat_y},{dfx},{dfy},{x},{y},{z},{dx},{dy},{dz},{altitude},{d_altitude},{speed},{accel},{expected_speed}\n",
+            "{orbit},{iter},{time},{mean_anom},{ecc_anom},{angle},{flat_position},{df},{position},{d},{altitude},{d_altitude},{speed},{accel},{expected_speed}\n",
             orbit = log.name,
             iter = log.iter,
             time = log.time,
@@ -341,10 +330,12 @@ fn create_csv(logs: &Vec<OrbitLog>) -> String {
             ecc_anom = log.ecc_anom,
             angle = log.angle,
             expected_speed = log.expected_speed,
+            flat_position = log.flat_position,
+            position = log.position
         );
 
-        prev_flat_pos = Some((flat_x, flat_y));
-        prev_pos = Some((x, y, z));
+        prev_flat_pos = Some(prev_flat_position);
+        prev_pos = Some(prev_position);
         prev_altitude = Some(altitude);
         prev_speed = Some(speed);
     }

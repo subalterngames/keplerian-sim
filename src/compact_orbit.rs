@@ -175,13 +175,6 @@ impl CompactOrbit {
         let eccentricity = (apoapsis - periapsis ) / (apoapsis + periapsis);
         return CompactOrbit::new(eccentricity, periapsis, inclination, arg_pe, long_asc_node, mean_anomaly);
     }
-
-    /// Creates a unit orbit.
-    /// 
-    /// The unit orbit is a perfect circle of radius 1 and no "tilt".
-    pub fn new_default() -> CompactOrbit {
-        return Self::new(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
-    }
 }
 
 
@@ -589,9 +582,9 @@ impl OrbitTrait for CompactOrbit {
         self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
     }
 
-    fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
-        let mut matrix = Matrix3x2::<f64>::filled_with(0.0);
-        {
+    fn get_transformation_matrix(&self) -> Matrix3x2 {
+        let mut matrix = Matrix3x2::default();
+        
             let (sin_inc, cos_inc) = self.inclination.sin_cos();
             let (sin_arg_pe, cos_arg_pe) = self.arg_pe.sin_cos();
             let (sin_lan, cos_lan) = self.long_asc_node.sin_cos();
@@ -605,15 +598,15 @@ impl OrbitTrait for CompactOrbit {
     
             matrix.e31 = sin_arg_pe * sin_inc;
             matrix.e32 = cos_arg_pe * sin_inc;
-        }
-        return matrix;
+        
+        matrix
     }
 
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
         if self.eccentricity < 1.0 {
-            return self.get_eccentric_anomaly_elliptic(mean_anomaly);
+            self.get_eccentric_anomaly_elliptic(mean_anomaly)
         } else {
-            return self.get_eccentric_anomaly_hyperbolic(mean_anomaly);
+            self.get_eccentric_anomaly_hyperbolic(mean_anomaly)
         }
     }
 
@@ -624,8 +617,8 @@ impl OrbitTrait for CompactOrbit {
             let (s, c) = eccentric_anomaly.sin_cos();
             let beta = eccentricity / (1.0 + (1.0 - eccentricity * eccentricity).sqrt());
     
-            return eccentric_anomaly + 2.0 * 
-                (beta * s / (1.0 - beta * c)).atan();
+            eccentric_anomaly + 2.0 * 
+                (beta * s / (1.0 - beta * c)).atan()
         } else {
             // From the presentation "Spacecraft Dynamics and Control"  
             // by Matthew M. Peet  
@@ -637,31 +630,32 @@ impl OrbitTrait for CompactOrbit {
             // f/2 = atan(sqrt((e+1)/(e-1))*tanh(H/2))
             // f = 2atan(sqrt((e+1)/(e-1))*tanh(H/2))
 
-            return 2.0 * (
+            2.0 * (
                 ((self.eccentricity + 1.0) / (self.eccentricity - 1.0)).sqrt() *
                 (eccentric_anomaly * 0.5).tanh()
-            ).atan();
+            ).atan()
         }
     }
 
     fn get_semi_latus_rectum(&self) -> f64 {
         if self.eccentricity == 1.0 {
-            return 2.0 * self.periapsis;
+            2.0 * self.periapsis
         }
-
-        return self.get_semi_major_axis() *
-            (1.0 - self.eccentricity * self.eccentricity);
+        else {
+            self.get_semi_major_axis() *
+            (1.0 - self.eccentricity * self.eccentricity)
+        }
     }
 
     fn get_altitude_at_angle(&self, true_anomaly: f64) -> f64 {
-        return (
+        (
             self.get_semi_latus_rectum() /
             (1.0 + self.eccentricity * true_anomaly.cos())
-        ).abs();
+        ).abs()
     }
 
     fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
-        return t * TAU + self.mean_anomaly;
+        t * TAU + self.mean_anomaly
     }
 
     fn get_eccentricity         (&self) -> f64 { self.eccentricity }
@@ -679,23 +673,24 @@ impl OrbitTrait for CompactOrbit {
     fn set_mean_anomaly_at_epoch(&mut self, value: f64) { self.mean_anomaly  = value }
 }
 
+impl Default for CompactOrbit {  
+    /// Creates a unit orbit.
+
+    /// The unit orbit is a perfect circle of radius 1 and no "tilt".
+    fn default() -> CompactOrbit {
+        Self::new(0.0, 1.0, 0.0, 0.0, 0.0, 0.0)
+    }
+}
+
 impl From<Orbit> for CompactOrbit {
     fn from(cached: Orbit) -> Self {
-        return Self {
+        Self {
             eccentricity: cached.get_eccentricity(),
             periapsis: cached.get_periapsis(),
             inclination: cached.get_inclination(),
             arg_pe: cached.get_arg_pe(),
             long_asc_node: cached.get_long_asc_node(),
             mean_anomaly: cached.get_mean_anomaly_at_epoch()
-        };
-    }
-}
-
-impl Orbit {
-    /// Compactify the cached orbit into a compact orbit to increase memory efficiency
-    /// while sacrificing calculation speed.
-    pub fn compactify(self) -> CompactOrbit {
-        CompactOrbit::from(self)
+        }
     }
 }

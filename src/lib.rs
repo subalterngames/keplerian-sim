@@ -44,7 +44,7 @@
 //! 
 //! # fn main() {
 //! // Create a perfectly circular orbit with a radius of 1 meter
-//! let orbit = Orbit::new_default();
+//! let orbit = Orbit::default();
 //! assert_eq!(orbit.get_position_at_time(0.0), (1.0, 0.0, 0.0));
 //! # }
 //! #
@@ -61,6 +61,7 @@ pub mod body_presets;
 pub use cached_orbit::Orbit;
 pub use compact_orbit::CompactOrbit;
 pub use body::Body;
+use glam::{DVec2, DVec3};
 pub use universe::Universe;
 
 /// A struct representing a 3x2 matrix.
@@ -75,90 +76,61 @@ pub use universe::Universe;
 /// 
 /// # Example
 /// ```
+/// use glam::{DVec2, DVec3};
+/// 
 /// use keplerian_sim::Matrix3x2;
 /// 
-/// let matrix: Matrix3x2<f64> = Matrix3x2 {
+/// let matrix = Matrix3x2 {
 ///    e11: 1.0, e12: 0.0,
 ///    e21: 0.0, e22: 1.0,
 ///    e31: 0.0, e32: 0.0,
 /// };
 /// 
-/// let vec = (1.0, 2.0);
+/// let vec = DVec2::new(1.0, 2.0);
 /// 
 /// let result = matrix.dot_vec(vec);
 /// 
-/// assert_eq!(result, (1.0, 2.0, 0.0));
+/// assert_eq!(result, DVec3::(1.0, 2.0, 0.0));
 /// ```
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq)]
-pub struct Matrix3x2<T> {
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+pub struct Matrix3x2 {
     // Element XY
-    pub e11: T, pub e12: T,
-    pub e21: T, pub e22: T,
-    pub e31: T, pub e32: T
+    pub e11: f64, pub e12: f64,
+    pub e21: f64, pub e22: f64,
+    pub e31: f64, pub e32: f64
 }
 
-impl<T: Copy> Copy for Matrix3x2<T> {}
-impl<T: Eq> Eq for Matrix3x2<T> {}
-
-impl<T: Copy> Matrix3x2<T> {
-    /// Create a new Matrix3x2 instance where each
-    /// element is initialized with the same value.
-    /// 
-    /// # Example
-    /// ```
-    /// use keplerian_sim::Matrix3x2;
-    /// 
-    /// let matrix = Matrix3x2::filled_with(0.0);
-    /// 
-    /// assert_eq!(matrix, Matrix3x2 {
-    ///    e11: 0.0, e12: 0.0,
-    ///    e21: 0.0, e22: 0.0,
-    ///    e31: 0.0, e32: 0.0,
-    /// });
-    /// ```
-    pub fn filled_with(element: T) -> Matrix3x2<T> {
-        return Matrix3x2 {
-            e11: element, e12: element,
-            e21: element, e22: element,
-            e31: element, e32: element,
-        };
-    }
-}
-
-impl<T> Matrix3x2<T>
-where
-    T: Copy + core::ops::Mul<Output = T> + core::ops::Add<Output = T>
+impl Matrix3x2
 {
     /// Computes a dot product between this matrix and a 2D vector.
     /// 
     /// # Example
     /// ```
+    /// use glam::{DVec2, DVec3};
+    /// 
     /// use keplerian_sim::Matrix3x2;
     /// 
-    /// let matrix: Matrix3x2<f64> = Matrix3x2 {
+    /// let matrix = Matrix3x2 {
     ///     e11: 1.0, e12: 0.0,
     ///     e21: 0.0, e22: 1.0,
     ///     e31: 1.0, e32: 1.0,
     /// };
     /// 
-    /// let vec = (1.0, 2.0);
+    /// let vec = DVec2::new(1.0, 2.0);
     /// 
     /// let result = matrix.dot_vec(vec);
     /// 
-    /// assert_eq!(result, (1.0, 2.0, 3.0));
+    /// assert_eq!(result, DVec3::new(1.0, 2.0, 3.0));
     /// ```
-    pub fn dot_vec(&self, vec: (T, T)) -> (T, T, T) {
-        return (
-            vec.0 * self.e11 + vec.1 * self.e12,
-            vec.0 * self.e21 + vec.1 * self.e22,
-            vec.0 * self.e31 + vec.1 * self.e32
+    pub fn dot_vec(&self, vec: &DVec2) -> DVec3 {
+        return DVec3::new(
+            vec.x * self.e11 + vec.y * self.e12,
+            vec.x * self.e21 + vec.y * self.e22,
+            vec.x * self.e31 + vec.y * self.e32
         );
     }
 }
-
-type Vec3 = (f64, f64, f64);
-type Vec2 = (f64, f64);
 
 /// A trait that defines the methods that a Keplerian orbit must implement.
 /// 
@@ -173,10 +145,10 @@ type Vec2 = (f64, f64);
 /// }
 /// 
 /// fn main() {
-///     let orbit = Orbit::new_default();
+///     let orbit = Orbit::default();
 ///     accepts_orbit(&orbit);
 /// 
-///     let compact = CompactOrbit::new_default();
+///     let compact = CompactOrbit::default();
 ///     accepts_orbit(&compact);
 /// }
 /// ```
@@ -191,13 +163,13 @@ type Vec2 = (f64, f64);
 /// # }
 /// # 
 /// # fn main() {
-/// #     let orbit = Orbit::new_default();
+/// #     let orbit = Orbit::default();
 /// #     accepts_orbit(&orbit);
 /// #  
-/// #     let compact = CompactOrbit::new_default();
+/// #     let compact = CompactOrbit::default();
 /// #     accepts_orbit(&compact);
-/// let not_orbit = (0.0, 1.0);
-/// accepts_orbit(&not_orbit);
+/// #     let not_orbit = (0.0, 1.0);
+/// #     accepts_orbit(&not_orbit);
 /// # }
 /// ```
 pub trait OrbitTrait {
@@ -217,7 +189,7 @@ pub trait OrbitTrait {
     /// ```
     /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
-    /// let mut orbit = Orbit::new_default();
+    /// let mut orbit = Orbit::default();
     /// orbit.set_periapsis(50.0);
     /// orbit.set_apoapsis_force(100.0);
     /// let sma = orbit.get_semi_major_axis();
@@ -249,7 +221,7 @@ pub trait OrbitTrait {
     /// ```
     /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
-    /// let mut orbit = Orbit::new_default();
+    /// let mut orbit = Orbit::default();
     /// orbit.set_periapsis(50.0);
     /// orbit.set_apoapsis_force(100.0);
     /// 
@@ -274,7 +246,7 @@ pub trait OrbitTrait {
     /// ```
     /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
-    /// let mut orbit = Orbit::new_default();
+    /// let mut orbit = Orbit::default();
     /// orbit.set_eccentricity(0.5); // Elliptic
     /// assert!(orbit.get_apoapsis() > 0.0);
     /// 
@@ -296,7 +268,7 @@ pub trait OrbitTrait {
     /// ```
     /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
-    /// let mut orbit = Orbit::new_default();
+    /// let mut orbit = Orbit::default();
     /// orbit.set_periapsis(50.0);
     /// 
     /// assert!(
@@ -339,7 +311,7 @@ pub trait OrbitTrait {
     /// ```
     /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
-    /// let orbit = Orbit::new_default();
+    /// let orbit = Orbit::default();
     /// let matrix = orbit.get_transformation_matrix();
     /// 
     /// assert_eq!(matrix, keplerian_sim::Matrix3x2 {
@@ -348,7 +320,7 @@ pub trait OrbitTrait {
     ///     e31: 0.0, e32: 0.0,
     /// });
     /// ```
-    fn get_transformation_matrix(&self) -> Matrix3x2<f64>;
+    fn get_transformation_matrix(&self) -> Matrix3x2;
 
     /// Gets the eccentric anomaly at a given mean anomaly in the orbit.
     /// 
@@ -452,19 +424,20 @@ pub trait OrbitTrait {
     /// 
     /// # Example
     /// ```
+    /// use glam::DVec3;
+    /// 
     /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
-    /// let mut orbit = Orbit::new_default();
+    /// let mut orbit = Orbit::default();
     /// orbit.set_periapsis(100.0);
     /// orbit.set_eccentricity(0.0);
     /// 
     /// let pos = orbit.get_position_at_angle(0.0);
     /// 
-    /// assert_eq!(pos, (100.0, 0.0, 0.0));
+    /// assert_eq!(pos, DVec3::new(100.0, 0.0, 0.0));
     /// ```
-    fn get_position_at_angle(&self, angle: f64) -> Vec3 {
-        let (x, y) = self.get_flat_position_at_angle(angle);
-        self.tilt_flat_position(x, y)
+    fn get_position_at_angle(&self, angle: f64) -> DVec3 {
+        self.tilt_flat_position(&self.get_flat_position_at_angle(angle))
     }
 
     /// Gets the 2D position at a given angle (true anomaly) in the orbit.
@@ -477,19 +450,20 @@ pub trait OrbitTrait {
     /// 
     /// # Example
     /// ```
+    /// use glam::DVec2;
     /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
-    /// let mut orbit = Orbit::new_default();
+    /// let mut orbit = Orbit::default();
     /// orbit.set_periapsis(100.0);
     /// orbit.set_eccentricity(0.0);
     /// 
     /// let pos = orbit.get_flat_position_at_angle(0.0);
     /// 
-    /// assert_eq!(pos, (100.0, 0.0));
+    /// assert_eq!(pos, DVec2::new(100.0, 0.0));
     /// ```
-    fn get_flat_position_at_angle(&self, angle: f64) -> Vec2 {
+    fn get_flat_position_at_angle(&self, angle: f64) -> DVec2 {
         let alt = self.get_altitude_at_angle(angle);
-        return (
+        return DVec2::new(
             alt * angle.cos(),
             alt * angle.sin()
         );
@@ -501,7 +475,7 @@ pub trait OrbitTrait {
     /// ```
     /// use keplerian_sim::{Orbit, OrbitTrait};
     /// 
-    /// let mut orbit = Orbit::new_default();
+    /// let mut orbit = Orbit::default();
     /// orbit.set_periapsis(100.0);
     /// orbit.set_eccentricity(0.0);
     /// 
@@ -550,7 +524,7 @@ pub trait OrbitTrait {
     /// 
     /// **This function returns non-finite numbers for parabolic orbits**
     /// due to how the equation for true anomaly works.
-    fn get_position_at_time(&self, t: f64) -> Vec3 {
+    fn get_position_at_time(&self, t: f64) -> DVec3 {
         self.get_position_at_angle(
             self.get_true_anomaly_at_time(t)
         )
@@ -576,7 +550,7 @@ pub trait OrbitTrait {
     /// 
     /// **This function returns non-finite numbers for parabolic orbits**
     /// due to how the equation for true anomaly works.
-    fn get_flat_position_at_time(&self, t: f64) -> Vec2 {
+    fn get_flat_position_at_time(&self, t: f64) -> DVec2 {
         self.get_flat_position_at_angle(
             self.get_true_anomaly_at_time(t)
         )
@@ -591,8 +565,8 @@ pub trait OrbitTrait {
     /// This function performs 10x faster in the cached version of the
     /// [`Orbit`] struct, as it doesn't need to recalculate the transformation
     /// matrix needed to transform 2D vector.
-    fn tilt_flat_position(&self, x: f64, y: f64) -> Vec3 {
-        self.get_transformation_matrix().dot_vec((x, y))
+    fn tilt_flat_position(&self, position: &DVec2) -> DVec3 {
+        self.get_transformation_matrix().dot_vec(position)
     }
 
     /// Gets the eccentricity of the orbit.

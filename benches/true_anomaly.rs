@@ -25,7 +25,7 @@ fn poll_true_compact(orbit: &CompactOrbit) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let orbit = Orbit::new_default();
+    let orbit = Orbit::default();
 
     c.bench_function("true poll cached", |b| b.iter(||
         poll_true_cached(black_box(&orbit))

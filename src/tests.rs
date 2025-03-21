@@ -2,11 +2,10 @@
 
 extern crate std;
 
+use glam::{DVec2, DVec3};
+
 use crate::{CompactOrbit, Orbit, OrbitTrait};
 use std::f64::consts::{PI, TAU};
-
-type Vec3 = (f64, f64, f64);
-type Vec2 = (f64, f64);
 
 const ALMOST_EQ_TOLERANCE: f64 = 1e-6;
 const ORBIT_POLL_ANGLES: usize = 4096;
@@ -21,52 +20,44 @@ fn assert_almost_eq(a: f64, b: f64, what: &str) {
     assert!(dist < ALMOST_EQ_TOLERANCE, "{msg}");
 }
 
-fn vec3_len(v: Vec3) -> f64 {
-    return (
-        v.0 * v.0 +
-        v.1 * v.1 +
-        v.2 * v.2
-    ).sqrt();
+fn assert_eq_vec3(a: DVec3, b: DVec3, what: &str) {
+    assert_eq!(a.x.to_bits(), b.x.to_bits(), "X coord of {what}");
+    assert_eq!(a.y.to_bits(), b.y.to_bits(), "Y coord of {what}");
+    assert_eq!(a.z.to_bits(), b.z.to_bits(), "Z coord of {what}");
 }
 
-fn assert_eq_vec3(a: Vec3, b: Vec3, what: &str) {
-    assert_eq!(a.0.to_bits(), b.0.to_bits(), "X coord of {what}");
-    assert_eq!(a.1.to_bits(), b.1.to_bits(), "Y coord of {what}");
-    assert_eq!(a.2.to_bits(), b.2.to_bits(), "Z coord of {what}");
+fn assert_eq_vec2(a: DVec2, b: DVec2, what: &str) {
+    assert_eq!(a.x.to_bits(), b.x.to_bits(), "X coord of {what}");
+    assert_eq!(a.y.to_bits(), b.y.to_bits(), "Y coord of {what}");
 }
 
-fn assert_eq_vec2(a: Vec2, b: Vec2, what: &str) {
-    assert_eq!(a.0.to_bits(), b.0.to_bits(), "X coord of {what}");
-    assert_eq!(a.1.to_bits(), b.1.to_bits(), "Y coord of {what}");
+fn assert_almost_eq_vec3(a: DVec3, b: DVec3, what: &str) {
+    assert_almost_eq(a.x, b.x, &("X coord of ".to_string() + what));
+    assert_almost_eq(a.y, b.y, &("Y coord of ".to_string() + what));
+    assert_almost_eq(a.z, b.z, &("Z coord of ".to_string() + what));
 }
 
-fn assert_almost_eq_vec3(a: Vec3, b: Vec3, what: &str) {
-    assert_almost_eq(a.0, b.0, &("X coord of ".to_string() + what));
-    assert_almost_eq(a.1, b.1, &("Y coord of ".to_string() + what));
-    assert_almost_eq(a.2, b.2, &("Z coord of ".to_string() + what));
+fn assert_almost_eq_vec2(a: DVec2, b: DVec2, what: &str) {
+    assert_almost_eq(a.x, b.x, &("X coord of ".to_string() + what));
+    assert_almost_eq(a.y, b.y, &("Y coord of ".to_string() + what));
 }
 
-fn assert_almost_eq_vec2(a: Vec2, b: Vec2, what: &str) {
-    assert_almost_eq(a.0, b.0, &("X coord of ".to_string() + what));
-    assert_almost_eq(a.1, b.1, &("Y coord of ".to_string() + what));
-}
-
-fn assert_orbit_positions_3d(orbit: &impl OrbitTrait, tests: &[(&str, f64, Vec3)]) {
+fn assert_orbit_positions_3d(orbit: &impl OrbitTrait, tests: &[(&str, f64, DVec3)]) {
     for (what, angle, expected) in tests.iter() {
         let pos = orbit.get_position_at_angle(*angle);
         assert_almost_eq_vec3(pos, *expected, what);
     }
 }
 
-fn assert_orbit_positions_2d(orbit: &impl OrbitTrait, tests: &[(&str, f64, Vec2)]) {
+fn assert_orbit_positions_2d(orbit: &impl OrbitTrait, tests: &[(&str, f64, DVec2)]) {
     for (what, angle, expected) in tests.iter() {
         let pos = orbit.get_flat_position_at_angle(*angle);
         assert_almost_eq_vec2(pos, *expected, what);
     }
 }
 
-fn poll_orbit(orbit: &impl OrbitTrait) -> Vec<Vec3> {
-    let mut vec: Vec<Vec3> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+fn poll_orbit(orbit: &impl OrbitTrait) -> Vec<DVec3> {
+    let mut vec: Vec<DVec3> = Vec::with_capacity(ORBIT_POLL_ANGLES);
 
     for i in 0..ORBIT_POLL_ANGLES {
         let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
@@ -75,8 +66,8 @@ fn poll_orbit(orbit: &impl OrbitTrait) -> Vec<Vec3> {
 
     return vec;
 }
-fn poll_flat(orbit: &impl OrbitTrait) -> Vec<Vec2> {
-    let mut vec: Vec<Vec2> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+fn poll_flat(orbit: &impl OrbitTrait) -> Vec<DVec2> {
+    let mut vec: Vec<DVec2> = Vec::with_capacity(ORBIT_POLL_ANGLES);
 
     for i in 0..ORBIT_POLL_ANGLES {
         let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
@@ -85,12 +76,12 @@ fn poll_flat(orbit: &impl OrbitTrait) -> Vec<Vec2> {
 
     return vec;
 }
-fn poll_transform(orbit: &impl OrbitTrait) -> Vec<Vec3> {
-    let mut vec: Vec<Vec3> = Vec::with_capacity(ORBIT_POLL_ANGLES);
+fn poll_transform(orbit: &impl OrbitTrait) -> Vec<DVec3> {
+    let mut vec: Vec<DVec3> = Vec::with_capacity(ORBIT_POLL_ANGLES);
 
     for i in 0..ORBIT_POLL_ANGLES {
         let angle = (i as f64) * 2.0 * PI / (ORBIT_POLL_ANGLES as f64);
-        vec.push(orbit.tilt_flat_position(1.0 * angle.cos(), 1.0 * angle.sin()));
+        vec.push(orbit.tilt_flat_position(&DVec2::new(1.0 * angle.cos(), 1.0 * angle.sin())));
     }
 
     return vec;
@@ -122,11 +113,11 @@ fn unit_orbit_angle_3d() {
     let orbit = unit_orbit();
 
     assert_orbit_positions_3d(&orbit, &[
-        ("unit orbit 1", 0.0 * PI, (1.0, 0.0, 0.0)),
-        ("unit orbit 2", 0.5 * PI, (0.0, 1.0, 0.0)),
-        ("unit orbit 3", 1.0 * PI, (-1.0, 0.0, 0.0)),
-        ("unit orbit 4", 1.5 * PI, (0.0, -1.0, 0.0)),
-        ("unit orbit 5", 2.0 * PI, (1.0, 0.0, 0.0)),
+        ("unit orbit 1", 0.0 * PI, DVec3::new(1.0, 0.0, 0.0)),
+        ("unit orbit 2", 0.5 * PI, DVec3::new(0.0, 1.0, 0.0)),
+        ("unit orbit 3", 1.0 * PI, DVec3::new(-1.0, 0.0, 0.0)),
+        ("unit orbit 4", 1.5 * PI, DVec3::new(0.0, -1.0, 0.0)),
+        ("unit orbit 5", 2.0 * PI, DVec3::new(1.0, 0.0, 0.0)),
     ]);
 }
 
@@ -135,11 +126,11 @@ fn unit_orbit_angle_2d() {
     let orbit = unit_orbit();
 
     assert_orbit_positions_2d(&orbit, &[
-        ("unit orbit 1", 0.0 * PI, (1.0, 0.0)),
-        ("unit orbit 2", 0.5 * PI, (0.0, 1.0)),
-        ("unit orbit 3", 1.0 * PI, (-1.0, 0.0)),
-        ("unit orbit 4", 1.5 * PI, (0.0, -1.0)),
-        ("unit orbit 5", 2.0 * PI, (1.0, 0.0)),
+        ("unit orbit 1", 0.0 * PI, DVec2::new(1.0, 0.0)),
+        ("unit orbit 2", 0.5 * PI, DVec2::new(0.0, 1.0)),
+        ("unit orbit 3", 1.0 * PI, DVec2::new(-1.0, 0.0)),
+        ("unit orbit 4", 1.5 * PI, DVec2::new(0.0, -1.0)),
+        ("unit orbit 5", 2.0 * PI, DVec2::new(1.0, 0.0)),
     ]);
 }
 
@@ -157,11 +148,11 @@ fn unit_orbit_transformation() {
     ];
 
     for point in tests {
-        let transformed = orbit.tilt_flat_position(point.0, point.1);
+        let transformed = orbit.tilt_flat_position(&DVec2::new(point.0, point.1));
 
-        assert_eq!(transformed.0, point.0);
-        assert_eq!(transformed.1, point.1);
-        assert_eq!(transformed.2, 0.0);
+        assert_eq!(transformed.x, point.0);
+        assert_eq!(transformed.y, point.1);
+        assert_eq!(transformed.z, 0.0);
     }
 }
 
@@ -180,7 +171,7 @@ fn tilted_equidistant() {
     let points = poll_orbit(&orbit);
 
     for point in points {
-        let distance = vec3_len(point);
+        let distance = point.length();
 
         assert_almost_eq(distance, 1.0, "Distance");
     }
@@ -200,14 +191,14 @@ fn tilted_90deg() {
     // Transform test
     let tests = [
         // Before and after transformation
-        (("Vector 1"), (1.0, 0.0),  (1.0, 0.0, 0.0)),
-        (("Vector 2"), (0.0, 1.0),  (0.0, 0.0, 1.0)),
-        (("Vector 3"), (-1.0, 0.0), (-1.0, 0.0, 0.0)),
-        (("Vector 4"), (0.0, -1.0), (0.0, 0.0, -1.0)),
+        (("Vector 1"), (1.0, 0.0),  DVec3::new(1.0, 0.0, 0.0)),
+        (("Vector 2"), (0.0, 1.0),  DVec3::new(0.0, 0.0, 1.0)),
+        (("Vector 3"), (-1.0, 0.0), DVec3::new(-1.0, 0.0, 0.0)),
+        (("Vector 4"), (0.0, -1.0), DVec3::new(0.0, 0.0, -1.0)),
     ];
 
     for (what, point, expected) in tests.iter() {
-        let transformed = orbit.tilt_flat_position(point.0, point.1);
+        let transformed = orbit.tilt_flat_position(&DVec2::new(point.0, point.1));
 
         assert_almost_eq_vec3(transformed, *expected, what);
     }
@@ -227,8 +218,8 @@ fn apoapsis_of_two() {
     let point_at_apoapsis = orbit.get_position_at_angle(PI);
     let point_at_periapsis = orbit.get_position_at_angle(0.0);
 
-    assert_almost_eq_vec3(point_at_apoapsis, (-2.0, 0.0, 0.0), "Ap");
-    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0), "Pe");
+    assert_almost_eq_vec3(point_at_apoapsis, DVec3::new(-2.0, 0.0, 0.0), "Ap");
+    assert_almost_eq_vec3(point_at_periapsis, DVec3::new(1.0, 0.0, 0.0), "Pe");
 }
 
 #[test]
@@ -245,8 +236,8 @@ fn huge_apoapsis() {
     let point_at_apoapsis = orbit.get_position_at_angle(PI);
     let point_at_periapsis = orbit.get_position_at_angle(0.0);
 
-    assert_almost_eq_vec3(point_at_apoapsis, (-10000.0, 0.0, 0.0), "Ap");
-    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0), "Pe");
+    assert_almost_eq_vec3(point_at_apoapsis, DVec3::new(-10000.0, 0.0, 0.0), "Ap");
+    assert_almost_eq_vec3(point_at_periapsis, DVec3::new(1.0, 0.0, 0.0), "Pe");
 }
 
 const JUST_BELOW_ONE: f64 = 0.9999999999999999;
@@ -276,7 +267,7 @@ fn almost_parabolic() {
 
     for pos in positions {
         assert!(
-            pos.0.is_finite() && pos.1.is_finite(),
+            pos.x.is_finite() && pos.y.is_finite(),
             "2D position algorithm instability at near-parabolic edge case"
         );
     }
@@ -285,7 +276,7 @@ fn almost_parabolic() {
 
     for pos in positions {
         assert!(
-            pos.0.is_finite() && pos.1.is_finite() && pos.2.is_finite(),
+            pos.x.is_finite() && pos.y.is_finite() && pos.z.is_finite(),
             "3D position algorithm instability at near-parabolic edge case"
         );
     }
@@ -294,13 +285,13 @@ fn almost_parabolic() {
 
     assert_almost_eq_vec3(
         position_at_periapsis,
-        (1.0, 0.0, 0.0),
+        DVec3::new(1.0, 0.0, 0.0),
         "Periapsis"
     );
 
     let position_at_apoapsis = orbit.get_position_at_angle(PI);
 
-    assert!(position_at_apoapsis.0.abs() > 1e12, "Apoapsis is not far enough");
+    assert!(position_at_apoapsis.x.abs() > 1e12, "Apoapsis is not far enough");
 }
 
 #[test]
@@ -317,16 +308,16 @@ fn parabolic() {
     let point_near_infinity = orbit.get_position_at_angle(PI - 1e-7);
     let point_at_periapsis = orbit.get_position_at_angle(0.0);
 
-    assert!(vec3_len(point_near_infinity) > 1e9, "Point near infinity is not far enough");
-    assert!(point_near_infinity.1.abs() > 0.0, "Y coord near infinity should move a little");
-    assert_almost_eq(point_near_infinity.2, 0.0, "Point near infinity should be flat");
-    assert_almost_eq_vec3(point_at_periapsis, (1.0, 0.0, 0.0), "Pe");
+    assert!(point_near_infinity.length() > 1e9, "Point near infinity is not far enough");
+    assert!(point_near_infinity.y.abs() > 0.0, "Y coord near infinity should move a little");
+    assert_almost_eq(point_near_infinity.z, 0.0, "Point near infinity should be flat");
+    assert_almost_eq_vec3(point_at_periapsis, DVec3::new(1.0, 0.0, 0.0), "Pe");
 
     let point_at_asymptote = orbit.get_position_at_angle(PI);
 
-    assert!(point_at_asymptote.0.is_nan(), "X at asymptote should be undefined");
-    assert!(point_at_asymptote.1.is_nan(), "Y at asymptote should be undefined");
-    assert!(point_at_asymptote.2.is_nan(), "Z at asymptote should be undefined");
+    assert!(point_at_asymptote.x.is_nan(), "X at asymptote should be undefined");
+    assert!(point_at_asymptote.y.is_nan(), "Y at asymptote should be undefined");
+    assert!(point_at_asymptote.z.is_nan(), "Z at asymptote should be undefined");
 }
 
 fn orbit_conversion_base_test(orbit: Orbit, what: &str) {
@@ -1099,14 +1090,14 @@ fn test_altitude() {
             let altitude = orbit.get_altitude_at_angle(angle);
 
             let pos_alt = (
-                pos.0.powi(2) +
-                pos.1.powi(2) +
-                pos.2.powi(2)
+                pos.x.powi(2) +
+                pos.y.powi(2) +
+                pos.z.powi(2)
             ).sqrt();
 
             let pos_flat = (
-                flat_pos.0.powi(2) +
-                flat_pos.1.powi(2)
+                flat_pos.x.powi(2) +
+                flat_pos.y.powi(2)
             ).sqrt();
 
             if !altitude.is_finite() { continue; }

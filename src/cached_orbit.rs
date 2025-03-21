@@ -96,7 +96,7 @@ struct OrbitCachedCalculations {
     linear_eccentricity: f64,
 
     /// The transformation matrix to tilt the 2D planar orbit into 3D space.
-    transformation_matrix: Matrix3x2<f64>,
+    transformation_matrix: Matrix3x2,
 
     /// A value based on the orbit's eccentricity, used to calculate
     /// the true anomaly from the eccentric anomaly.  
@@ -162,7 +162,7 @@ impl Orbit {
     /// Creates a unit orbit.
     /// 
     /// The unit orbit is a perfect circle of radius 1 and no "tilt".
-    pub fn new_default() -> Orbit {
+    pub fn default() -> Orbit {
         return Self::new(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     }
 
@@ -196,9 +196,9 @@ impl Orbit {
         };
     }
 
-    fn get_transformation_matrix(inclination: f64, arg_pe: f64, long_asc_node: f64) -> Matrix3x2<f64> {
-        let mut matrix = Matrix3x2::<f64>::filled_with(0.0);
-        {
+    fn get_transformation_matrix(inclination: f64, arg_pe: f64, long_asc_node: f64) -> Matrix3x2 {
+        let mut matrix = Matrix3x2::default();
+        
             let (sin_inc, cos_inc) = inclination.sin_cos();
             let (sin_arg_pe, cos_arg_pe) = arg_pe.sin_cos();
             let (sin_lan, cos_lan) = long_asc_node.sin_cos();
@@ -212,7 +212,7 @@ impl Orbit {
 
             matrix.e31 = sin_arg_pe * sin_inc;
             matrix.e32 = cos_arg_pe * sin_inc;
-        }
+        
         return matrix;
     }
 }
@@ -610,7 +610,7 @@ impl OrbitTrait for Orbit {
         self.eccentricity = (apoapsis - self.periapsis) / (apoapsis + self.periapsis);
         self.update_cache();
 
-        return Ok(());
+        Ok(())
     }
 
     fn set_apoapsis_force(&mut self, apoapsis: f64) {
@@ -623,8 +623,8 @@ impl OrbitTrait for Orbit {
         self.update_cache();
     }
 
-    fn get_transformation_matrix(&self) -> Matrix3x2<f64> {
-        return self.cache.transformation_matrix;
+    fn get_transformation_matrix(&self) -> Matrix3x2 {
+        self.cache.transformation_matrix.clone()
     }
 
     fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
