@@ -3,8 +3,12 @@ use glam::DVec3;
 use crate::{Orbit, OrbitTrait};
 use core::f64::consts::TAU;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A struct representing a celestial body.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Body {
     /// The name of the celestial body.
     pub name: String,

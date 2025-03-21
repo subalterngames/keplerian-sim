@@ -1,4 +1,7 @@
-use core::fmt;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+use std::fmt;
 
 use glam::DVec3;
 
@@ -6,6 +9,7 @@ use super::Body;
 
 /// Struct that represents the simulation of the universe.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Universe {
     /// The celestial bodies in the universe.
     bodies: Vec<Body>,
@@ -22,7 +26,9 @@ pub struct Universe {
     /// The gravitational constant, in m^3 kg^-1 s^-2.
     pub g: f64,
 }
+
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BodyRelation {
     pub parent: Option<usize>,
     pub satellites: Vec<usize>,

@@ -66,6 +66,10 @@ pub use body::Body;
 pub use cached_orbit::Orbit;
 pub use compact_orbit::CompactOrbit;
 use glam::{DVec2, DVec3};
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 pub use universe::Universe;
 
 /// A constant used to get the initial seed for the eccentric anomaly.
@@ -145,6 +149,7 @@ const PI_SQUARED: f64 = PI * PI;
 /// ```
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Matrix3x2 {
     // Element XY
     pub e11: f64,

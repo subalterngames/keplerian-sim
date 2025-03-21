@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{ApoapsisSetterError, Matrix3x2, Orbit, OrbitTrait};
 
 /// A minimal struct representing a Keplerian orbit.
@@ -58,6 +61,7 @@ use crate::{ApoapsisSetterError, Matrix3x2, Orbit, OrbitTrait};
 /// ```
 /// See [Orbit::new] and [Orbit::with_apoapsis] for more information.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CompactOrbit {
     /// The eccentricity of the orbit.  
     /// e < 1: ellipse  

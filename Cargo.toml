@@ -34,4 +34,8 @@ name = "position_time"
 harness = false
 
 [dependencies]
-glam = "0.30.1"
+glam = { version = "0.30.1", features = ["serde"] }
+serde = { version = "1.0.219", optional = true, features = ["derive"] }
+
+[features]
+serde = ["dep:serde"]
