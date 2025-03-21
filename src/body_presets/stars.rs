@@ -21,5 +21,5 @@ pub fn the_sun(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("The Sun".to_string(), 1.989e30, 6.9634e5, orbit);
+    Body::new("The Sun".to_string(), 1.989e30, 6.9634e5, orbit)
 }

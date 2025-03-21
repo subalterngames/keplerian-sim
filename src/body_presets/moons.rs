@@ -29,7 +29,7 @@ pub fn luna(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Luna".to_string(), 7.342e22, 1.7371e6, orbit);
+    Body::new("Luna".to_string(), 7.342e22, 1.7371e6, orbit)
 }
 
 pub use luna as the_moon;
@@ -54,7 +54,7 @@ pub fn weywot(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new(
+    Body::new(
         "Weywot".to_string(),
         // Weywot's mass has not been measured.
         // I extrapolated from the mean density of Quaoar:
@@ -71,7 +71,7 @@ pub fn weywot(include_orbit: bool) -> Body {
         7.12e18,
         1e5,
         orbit,
-    );
+    )
 }
 
 /// Returns (134340) Pluto I, a.k.a., Charon, the largest moon orbiting Pluto.
@@ -93,7 +93,7 @@ pub fn charon(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Charon".to_string(), 1.5897e21, 6.06e5, orbit);
+    Body::new("Charon".to_string(), 1.5897e21, 6.06e5, orbit)
 }
 
 /// Returns (136199) Eris I Dysnomia, the moon of the dwarf planet Eris.
@@ -114,12 +114,12 @@ pub fn dysnomia(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new(
+    Body::new(
         "Dysnomia".to_string(),
         // Apparently not very precise;
         // it's plus or minus 5.7e19 kg
         8.2e19,
         6.15e5 / 2.0,
         orbit,
-    );
+    )
 }

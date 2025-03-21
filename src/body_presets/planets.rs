@@ -29,7 +29,7 @@ pub fn mercury(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Mercury".to_string(), 3.3011e23, 2.4397e6, orbit);
+    Body::new("Mercury".to_string(), 3.3011e23, 2.4397e6, orbit)
 }
 
 /// Returns Venus, the second planet from the Sun.
@@ -50,7 +50,7 @@ pub fn venus(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Venus".to_string(), 4.8675e24, 6.0518e6, orbit);
+    Body::new("Venus".to_string(), 4.8675e24, 6.0518e6, orbit)
 }
 
 /// Returns Earth, the third planet from the Sun.
@@ -71,7 +71,7 @@ pub fn earth(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Earth".to_string(), 5.972e24, 6.371e6, orbit);
+    Body::new("Earth".to_string(), 5.972e24, 6.371e6, orbit)
 }
 
 /// Returns Mars, the fourth planet from the Sun.
@@ -92,7 +92,7 @@ pub fn mars(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Mars".to_string(), 6.4171e23, 3.3895e6, orbit);
+    Body::new("Mars".to_string(), 6.4171e23, 3.3895e6, orbit)
 }
 
 /// Returns Jupiter, the fifth planet from the Sun.  
@@ -113,7 +113,7 @@ pub fn jupiter(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Jupiter".to_string(), 1.8982e27, 6.9911e7, orbit);
+    Body::new("Jupiter".to_string(), 1.8982e27, 6.9911e7, orbit)
 }
 
 /// Returns Saturn, the sixth planet from the Sun.  
@@ -134,7 +134,7 @@ pub fn saturn(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Saturn".to_string(), 5.6834e26, 58232.0, orbit);
+    Body::new("Saturn".to_string(), 5.6834e26, 58232.0, orbit)
 }
 
 /// Returns Uranus, the seventh planet from the Sun.
@@ -155,7 +155,7 @@ pub fn uranus(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Uranus".to_string(), 8.681e25, 2.5362e7, orbit);
+    Body::new("Uranus".to_string(), 8.681e25, 2.5362e7, orbit)
 }
 
 /// Returns Neptune, the eighth planet from the Sun.
@@ -176,5 +176,5 @@ pub fn neptune(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Neptune".to_string(), 1.02409e26, 2.4341e7, orbit);
+    Body::new("Neptune".to_string(), 1.02409e26, 2.4341e7, orbit)
 }

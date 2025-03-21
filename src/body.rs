@@ -35,28 +35,14 @@ impl Body {
     /// # Returns
     ///
     /// A new `Body` instance.
-    pub fn new(name: String, mass: f64, radius: f64, orbit: Option<Orbit>) -> Body {
-        return Body {
+    pub fn new(name: String, mass: f64, radius: f64, orbit: Option<Orbit>) -> Self {
+        Self {
             name,
             mass,
             radius,
             orbit,
             progress: 0.0,
-        };
-    }
-
-    /// Creates a default `Body` instance.
-    ///
-    /// Currently, this function returns the Earth.  
-    /// However, do not rely on this behavior, as it may change in the future.
-    pub fn default() -> Body {
-        return Body {
-            name: "Earth".to_string(),
-            mass: 5.972e24,
-            radius: 6.371e6,
-            orbit: None,
-            progress: 0.0,
-        };
+        }
     }
 
     /// Releases the body from its orbit.
@@ -71,13 +57,11 @@ impl Body {
         let orbit = self.orbit.as_ref()?;
         let mu = g * self.mass;
 
-        if orbit.get_eccentricity() >= 1.0 {
-            return Some(core::f64::INFINITY);
-        }
-
-        let semi_major_axis = orbit.get_semi_major_axis();
-
-        return Some(TAU * (semi_major_axis / mu).sqrt());
+        Some(if orbit.get_eccentricity() >= 1.0 {
+            f64::INFINITY
+        } else {
+            TAU * (orbit.get_semi_major_axis() / mu).sqrt()
+        })
     }
     /// Progresses this body's orbit, given a time step and the gravitational
     /// acceleration towards the parent body.
@@ -101,9 +85,24 @@ impl Body {
     ///
     /// Each coordinate is in meters.
     pub fn get_relative_position(&self) -> Option<DVec3> {
-        match self.orbit.as_ref() {
-            Some(orbit) => Some(orbit.get_position_at_time(self.progress)),
-            None => None,
+        self.orbit
+            .as_ref()
+            .map(|orbit| orbit.get_position_at_time(self.progress))
+    }
+}
+
+impl Default for Body {
+    /// Creates a default `Body` instance.
+    ///
+    /// Currently, this function returns the Earth.  
+    /// However, do not rely on this behavior, as it may change in the future.
+    fn default() -> Self {
+        Self {
+            name: "Earth".to_string(),
+            mass: 5.972e24,
+            radius: 6.371e6,
+            orbit: None,
+            progress: 0.0,
         }
     }
 }

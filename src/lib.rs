@@ -58,11 +58,60 @@ mod cached_orbit;
 mod compact_orbit;
 mod universe;
 
+use std::f64::consts::{PI, TAU};
+
 pub use body::Body;
 pub use cached_orbit::Orbit;
 pub use compact_orbit::CompactOrbit;
 use glam::{DVec2, DVec3};
 pub use universe::Universe;
+
+/// A constant used to get the initial seed for the eccentric anomaly.
+///
+/// It's very arbitrary, but according to some testing, a value just
+/// below 1 works better than exactly 1.
+///
+/// Source:
+/// "Two fast and accurate routines for solving the elliptic Kepler
+/// equation for all values of the eccentricity and mean anomaly"
+/// by Daniele Tommasini and David N. Olivieri,
+/// section 2.1.2, 'The "rational seed"'
+///
+/// https://doi.org/10.1051/0004-6361/202141423
+const B: f64 = 0.999999;
+
+/// A constant used for the Laguerre method.
+///
+/// The paper "An improved algorithm due to
+/// laguerre for the solution of Kepler's equation."
+/// says:
+///
+/// > Similar experimentation has been done with values of n both greater and smaller
+/// > than n = 5. The speed of convergence seems to be very insensitive to the choice of n.
+/// > No value of n was found to yield consistently better convergence properties than the
+/// > choice of n = 5 though specific cases were found where other choices would give
+/// > faster convergence.
+const N_U32: u32 = 5;
+
+/// A constant used for the Laguerre method.
+///
+/// The paper "An improved algorithm due to
+/// laguerre for the solution of Kepler's equation."
+/// says:
+///
+/// > Similar experimentation has been done with values of n both greater and smaller
+/// > than n = 5. The speed of convergence seems to be very insensitive to the choice of n.
+/// > No value of n was found to yield consistently better convergence properties than the
+/// > choice of n = 5 though specific cases were found where other choices would give
+/// > faster convergence.
+const N_F64: f64 = 5.0;
+
+/// The maximum number of iterations for the numerical approach algorithms.
+///
+/// This is used to prevent infinite loops in case the method fails to converge.
+const NUMERIC_MAX_ITERS: u32 = 1000;
+
+const PI_SQUARED: f64 = PI * PI;
 
 /// A struct representing a 3x2 matrix.
 ///
@@ -126,11 +175,11 @@ impl Matrix3x2 {
     /// assert_eq!(result, DVec3::new(1.0, 2.0, 3.0));
     /// ```
     pub fn dot_vec(&self, vec: &DVec2) -> DVec3 {
-        return DVec3::new(
+        DVec3::new(
             vec.x * self.e11 + vec.y * self.e12,
             vec.x * self.e21 + vec.y * self.e22,
             vec.x * self.e31 + vec.y * self.e32,
-        );
+        )
     }
 }
 
@@ -212,7 +261,14 @@ pub trait OrbitTrait {
     ///
     /// Learn more: <https://en.wikipedia.org/wiki/Ellipse#Semi-latus_rectum>  
     /// <https://en.wikipedia.org/wiki/Conic_section#Conic_parameters>
-    fn get_semi_latus_rectum(&self) -> f64;
+    fn get_semi_latus_rectum(&self) -> f64 {
+        let eccentricity = self.get_eccentricity();
+        if eccentricity == 1.0 {
+            2.0 * self.get_periapsis()
+        } else {
+            self.get_semi_major_axis() * (1.0 - eccentricity * eccentricity)
+        }
+    }
 
     /// Gets the linear eccentricity of the orbit, in meters.
     ///
@@ -258,7 +314,14 @@ pub trait OrbitTrait {
     /// orbit.set_eccentricity(2.0); // Hyperbolic
     /// assert!(orbit.get_apoapsis() < 0.0);
     /// ```
-    fn get_apoapsis(&self) -> f64;
+    fn get_apoapsis(&self) -> f64 {
+        let eccentricity = self.get_eccentricity();
+        if eccentricity >= 1.0 {
+            f64::INFINITY
+        } else {
+            self.get_semi_major_axis() * (1.0 + eccentricity)
+        }
+    }
 
     /// Sets the apoapsis of the orbit.  
     /// Errors when the apoapsis is less than the periapsis, or less than zero.  
@@ -338,7 +401,13 @@ pub trait OrbitTrait {
     /// of a body that is moving along an elliptic Kepler orbit.
     ///
     /// \- [Wikipedia](https://en.wikipedia.org/wiki/Eccentric_anomaly)
-    fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64;
+    fn get_eccentric_anomaly(&self, mean_anomaly: f64) -> f64 {
+        if self.get_eccentricity() < 1.0 {
+            self.get_eccentric_anomaly_elliptic(mean_anomaly)
+        } else {
+            self.get_eccentric_anomaly_hyperbolic(mean_anomaly)
+        }
+    }
 
     /// Gets the true anomaly at a given eccentric anomaly in the orbit.
     ///
@@ -347,7 +416,30 @@ pub trait OrbitTrait {
     ///
     /// This function returns +/- pi for parabolic orbits due to how the equation works,
     /// and so **may result in infinities when combined with other functions**.
-    fn get_true_anomaly_at_eccentric_anomaly(&self, eccentric_anomaly: f64) -> f64;
+    fn get_true_anomaly_at_eccentric_anomaly(&self, eccentric_anomaly: f64) -> f64 {
+        let eccentricity = self.get_eccentricity();
+        if eccentricity < 1.0 {
+            // https://en.wikipedia.org/wiki/True_anomaly#From_the_eccentric_anomaly
+            let (s, c) = eccentric_anomaly.sin_cos();
+            let beta = eccentricity / (1.0 + (1.0 - eccentricity * eccentricity).sqrt());
+
+            eccentric_anomaly + 2.0 * (beta * s / (1.0 - beta * c)).atan()
+        } else {
+            // From the presentation "Spacecraft Dynamics and Control"
+            // by Matthew M. Peet
+            // https://control.asu.edu/Classes/MAE462/462Lecture05.pdf
+            // Slide 25 of 27
+            // Section "The Method for Hyperbolic Orbits"
+            //
+            // tan(f/2) = sqrt((e+1)/(e-1))*tanh(H/2)
+            // f/2 = atan(sqrt((e+1)/(e-1))*tanh(H/2))
+            // f = 2atan(sqrt((e+1)/(e-1))*tanh(H/2))
+
+            2.0 * (((eccentricity + 1.0) / (eccentricity - 1.0)).sqrt()
+                * (eccentric_anomaly * 0.5).tanh())
+            .atan()
+        }
+    }
 
     /// Gets the true anomaly at a given mean anomaly in the orbit.
     ///
@@ -375,7 +467,9 @@ pub trait OrbitTrait {
     /// of that body in the classical two-body problem.
     ///
     /// \- [Wikipedia](https://en.wikipedia.org/wiki/Mean_anomaly)
-    fn get_mean_anomaly_at_time(&self, t: f64) -> f64;
+    fn get_mean_anomaly_at_time(&self, t: f64) -> f64 {
+        t * TAU + self.get_mean_anomaly_at_epoch()
+    }
 
     /// Gets the eccentric anomaly at a given time in the orbit.
     ///
@@ -459,7 +553,7 @@ pub trait OrbitTrait {
     /// ```
     fn get_flat_position_at_angle(&self, angle: f64) -> DVec2 {
         let alt = self.get_altitude_at_angle(angle);
-        return DVec2::new(alt * angle.cos(), alt * angle.sin());
+        DVec2::new(alt * angle.cos(), alt * angle.sin())
     }
 
     /// Gets the altitude of the body from its parent at a given angle (true anomaly) in the orbit.
@@ -476,7 +570,9 @@ pub trait OrbitTrait {
     ///
     /// assert_eq!(altitude, 100.0);
     /// ```
-    fn get_altitude_at_angle(&self, angle: f64) -> f64;
+    fn get_altitude_at_angle(&self, true_anomaly: f64) -> f64 {
+        (self.get_semi_latus_rectum() / (1.0 + self.get_eccentricity() * true_anomaly.cos())).abs()
+    }
 
     /// Gets the altitude of the body from its parent at a given time in the orbit.
     ///
@@ -705,6 +801,317 @@ pub trait OrbitTrait {
     ///
     /// In simple terms, this modifies the "offset" of the orbit progression.
     fn set_mean_anomaly_at_epoch(&mut self, mean_anomaly: f64);
+
+    /// Get an initial guess for the hyperbolic eccentric anomaly of an orbit.
+    ///
+    /// From the paper:  
+    /// "A new method for solving the hyperbolic Kepler equation"  
+    /// by Baisheng Wu et al.  
+    /// Quote:
+    /// "we divide the hyperbolic eccentric anomaly interval into two parts:
+    /// a finite interval and an infinite interval. For the finite interval,
+    /// we apply a piecewise Pade approximation to establish an initial
+    /// approximate solution of HKE. For the infinite interval, an analytical
+    /// initial approximate solution is constructed."
+    fn get_approx_hyp_ecc_anomaly(&self, mean_anomaly: f64) -> f64 {
+        let sign = mean_anomaly.signum();
+        let mean_anomaly = mean_anomaly.abs();
+        const SINH_5: f64 = 74.20321057778875;
+
+        let eccentricity = self.get_eccentricity();
+
+        // (Paragraph after Eq. 5 in the aforementioned paper)
+        //   The [mean anomaly] interval [0, e_c sinh(5) - 5) can
+        //   be separated into fifteen subintervals corresponding to
+        //   those intervals of F in [0, 5), see Eq. (4).
+        sign * if mean_anomaly < eccentricity * SINH_5 - 5.0 {
+            // We use the Pade approximation of sinh of order
+            // [3 / 2], in `crate::generated_sinh_approximator`.
+            // We can then rearrange the equation to a cubic
+            // equation in terms of (F - a) and solve it.
+            //
+            // To quote the paper:
+            //   Replacing sinh(F) in [the hyperbolic Kepler
+            //   equation] with its piecewise Pade approximation
+            //   defined in Eq. (4) [`crate::generated_sinh_approximator`]
+            //   yields:
+            //     e_c P(F) - F = M_h                          (6)
+            //
+            //   Eq. (6) can be written as a cubic equation in u = F - a, as
+            //     (e_c p_3 - q_2)u^3 +
+            //     (e_c p_2 - (M_h + a)q_2 - q_1) u^2 +
+            //     (e_c p_1 - (M_h + a)q_1 - 1)u +
+            //     e_c s - M_h - a = 0                         (7)
+            //
+            //   Solving Eq. (7) and picking the real root F = F_0 in the
+            //   corresponding subinterval results in an initial approximate
+            //   solution to [the hyperbolic Kepler equation].
+            //
+            // For context:
+            // - `e_c` is eccentricity
+            // - `p_*`, `q_*`, `a`, and `s` is derived from the Pade approximation
+            //   arguments, which can be retrieved using the
+            //   `generated_sinh_approximator::get_sinh_approx_params` function
+            // - `M_h` is the mean anomaly
+            // - `F` is the eccentric anomaly
+
+            use crate::generated_sinh_approximator::get_sinh_approx_params;
+            let params = get_sinh_approx_params(mean_anomaly);
+
+            // We first get the value of each coefficient in the cubic equation:
+            // Au^3 + Bu^2 + Cu + D = 0
+            let mean_anom_plus_a = mean_anomaly + params.a;
+            let coeff_a = eccentricity * params.p_3 - params.q_2;
+            let coeff_b = eccentricity * params.p_2 - mean_anom_plus_a * params.q_2 - params.q_1;
+            let coeff_c = eccentricity * params.p_1 - mean_anom_plus_a * params.q_1 - 1.0;
+            let coeff_d = eccentricity * params.s - mean_anomaly - params.a;
+
+            // Then we solve it to get the value of u = F - a
+            let u = solve_monotone_cubic(coeff_a, coeff_b, coeff_c, coeff_d);
+
+            u + params.a
+        } else {
+            // Equation 13
+            // A *very* rough guess, with an error that may exceed 1%.
+            let rough_guess = (2.0 * mean_anomaly / eccentricity).ln();
+
+            /*
+            A fourth-order Schröder iteration of the second kind
+            is performed to create a better guess.
+            ...Apparently it's not a well-known thing, but the aforementioned paper
+            referenced this other paper about Schröder iterations:
+            https://doi.org/10.1016/j.cam.2019.02.035
+
+            To do the Schröder iteration, we need to compute a delta value
+            to be added to the rough guess. Part of Equation 15 from the paper is below.
+
+            delta = (
+                    6 * [e_c^2 / (4 * M_h) + F_a] / (e_c * c_a - 1) +
+                    3 * [e_c * s_a / (e_c * c_a - 1)]{[e_c^2 / (4 * M_h) + F_a] / (e_c * c_a - 1)}^2
+                ) / (
+                    6 +
+                    6 * [e_c * s_a / (e_c * c_a - 1)]{[e_c^2 / (4 * M_h) + F_a] / (e_c * c_a - 1)} +
+                    [e_c * c_a / (e_c * c_a - 1)]{[e_c^2 / (4 * M_h) + F_a] / (e_c * c_a - 1)}^2
+                )
+            ...where:
+            e_c = eccentricity
+            F_a = rough guess
+            c_a = cosh(F_a) = 0.5 * [2 * M_h / e_c + e_c / (2 * M_h)],
+            s_a = sinh(F_a) = 0.5 * [2 * M_h / e_c - e_c / (2 * M_h)]
+
+            Although the equation may look intimidating, there are a lot of repeated values.
+            We can simplify the equation by extracting the repeated values.
+
+            Let:
+                alpha = e_c^2 / (4 * M_h) + F_a
+                beta  = 1 / (e_c * c_a - 1)
+                gamma = alpha * beta
+
+            The equation gets simplified into:
+
+            delta = (
+                    6 * gamma +
+                    3 * e_c * s_a * beta * gamma^2
+                ) / (
+                    6 +
+                    6 * e_c * s_a * beta * gamma +
+                    e_c * c_a * beta * gamma^2
+                )
+
+            Then we can refine the rough guess into the initial guess:
+            F_0 = F_a + delta
+            */
+
+            let (c_a, s_a) = {
+                // c_a and s_a has a lot of repeated values, so we can
+                // optimize by calculating them together.
+                // c_a, s_a = 0.5 * [2 * M_h / e_c +- e_c / (2 * M_h)]
+                //
+                // define "left"  = 2 * M_h / e_c
+                // define "right" = e_c / (2 * M_h)
+
+                let left = 2.0 * mean_anomaly / eccentricity;
+                let right = eccentricity / (2.0 * mean_anomaly);
+
+                (0.5 * (left + right), 0.5 * (left - right))
+            };
+
+            let alpha = eccentricity * eccentricity / (4.0 * mean_anomaly) + rough_guess;
+
+            let beta = (eccentricity * c_a - 1.0).recip();
+
+            let gamma = alpha * beta;
+            let gamma_sq = gamma * gamma;
+
+            let delta = (6.0 * alpha * beta + 3.0 * (eccentricity * s_a * beta) * gamma_sq)
+                / (6.0
+                    + 6.0 * (eccentricity * s_a * beta) * gamma
+                    + (eccentricity * c_a * beta) * gamma_sq);
+
+            rough_guess + delta
+        }
+    }
+
+    /// From the paper:  
+    /// "A new method for solving the hyperbolic Kepler equation"  
+    /// by Baisheng Wu et al.  
+    fn get_eccentric_anomaly_hyperbolic(&self, mean_anomaly: f64) -> f64 {
+        let mut ecc_anom = self.get_approx_hyp_ecc_anomaly(mean_anomaly);
+
+        /*
+        Do a fourth-order Schröder iteration of the second kind
+
+        Equation 25 of "A new method for solving the hyperbolic Kepler equation"
+        by Baisheng Wu et al.
+        Slightly restructured:
+
+        F_1^(4) = F_0 - (
+            (6h/h' - 3h^2 h'' / h'^3) /
+            (6 - 6h h'' / h'^2 + h^2 h'''/h'^3)
+        )
+
+        ...where:
+        e_c = eccentricity
+        F_0 = initial guess
+        h   = e_c sinh(F_0) - F_0 - M_h
+        h'  = e_c cosh(F_0) - 1
+        h'' = e_c sinh(F_0)
+            = h + F_0 + M_h
+        h'''= h' + 1
+
+        Rearranging for efficiency:
+        h'''= e_c cosh(F_0)
+        h'  = h''' - 1
+        h'' = e_c sinh(F_0)
+        h   = h'' - F_0 - M_h
+
+        Factoring out 1/h':
+
+        let r = 1 / h'
+
+        F_1^(4) = F_0 - (
+            (6hr - 3h^2 h'' r^3) /
+            (6 - 6h h'' r^2 + h^2 h''' r^3)
+        )
+
+        Since sinh and cosh are very similar algebraically,
+        it may be better to calculate them together.
+
+        Paper about Schröder iterations:
+        https://doi.org/10.1016/j.cam.2019.02.035
+         */
+
+        let eccentricity = self.get_eccentricity();
+
+        for _ in 0..NUMERIC_MAX_ITERS {
+            let (sinh_eca, cosh_eca) = sinhcosh(ecc_anom);
+
+            let hppp = eccentricity * cosh_eca;
+            let hp = hppp - 1.0;
+            let hpp = eccentricity * sinh_eca;
+            let h = hpp - ecc_anom - mean_anomaly;
+
+            let h_sq = h * h;
+            let r = hp.recip();
+            let r_sq = r * r;
+            let r_cub = r_sq * r;
+
+            let denominator = 6.0 - 6.0 * h * hpp * r_sq + h_sq * hppp * r_cub;
+
+            if denominator.abs() < 1e-30 || !denominator.is_finite() {
+                // dangerously close to div-by-zero, break out
+                #[cfg(debug_assertions)]
+                eprintln!(
+                    "Hyperbolic eccentric anomaly solver: denominator is too small or not finite"
+                );
+                break;
+            }
+
+            let numerator = 6.0 * h * r - 3.0 * h_sq * hpp * r_cub;
+            let delta = numerator / denominator;
+
+            ecc_anom -= delta;
+
+            if delta.abs() < 1e-12 {
+                break;
+            }
+        }
+
+        ecc_anom
+    }
+
+    /// "An improved algorithm due to laguerre for the solution of Kepler's equation."
+    /// by Bruce A. Conway
+    /// https://doi.org/10.1007/bf01230852
+    fn get_eccentric_anomaly_elliptic(&self, mut mean_anomaly: f64) -> f64 {
+        let mut sign = 1.0;
+        // Use the symmetry and periodicity of the eccentric anomaly
+        // Equation 2 from the paper
+        // "Two fast and accurate routines for solving
+        // the elliptic Kepler equation for all values
+        // of the eccentricity and mean anomaly"
+        mean_anomaly %= TAU;
+        if mean_anomaly > PI {
+            // return self.get_eccentric_anomaly_elliptic(mean_anomaly - TAU);
+            mean_anomaly -= TAU;
+        }
+        if mean_anomaly < 0.0 {
+            // return -self.get_eccentric_anomaly_elliptic(-mean_anomaly);
+            mean_anomaly = -mean_anomaly;
+            sign = -1.0;
+        }
+
+        // Starting guess
+        // Section 2.1.2, 'The "rational seed"',
+        // equation 19, from the paper
+        // "Two fast and accurate routines for solving
+        // the elliptic Kepler equation for all values
+        // of the eccentricity and mean anomaly"
+        //
+        // E_0 = M + (4beM(pi - M)) / (8eM + 4e(e-pi) + pi^2)
+        // where:
+        // e = eccentricity
+        // M = mean anomaly
+        // pi = the constant PI
+        // b = the constant B
+        let eccentricity = self.get_eccentricity();
+        let mut eccentric_anomaly = mean_anomaly
+            + (4.0 * eccentricity * B * mean_anomaly * (PI - mean_anomaly))
+                / (8.0 * eccentricity * mean_anomaly
+                    + 4.0 * eccentricity * (eccentricity - PI)
+                    + PI_SQUARED);
+
+        // Laguerre's method
+        //
+        // i = 2, 3, ..., n
+        //
+        // D = sqrt((n-1)^2(f'(x_i))^2 - n(n-1)f(x_i)f''(x_i))
+        //
+        // x_i+1 = x_i - (nf(x_i) / (f'(x_i) +/- D))
+        // ...where the "+/-" is chosen to so that abs(denominator) is maximized
+        for _ in 2..N_U32 {
+            let f = keplers_equation(mean_anomaly, eccentric_anomaly, eccentricity);
+            let fp = keplers_equation_derivative(eccentric_anomaly, eccentricity);
+            let fpp = keplers_equation_second_derivative(eccentric_anomaly, eccentricity);
+
+            let n = N_F64;
+            let n_minus_1 = n - 1.0;
+            let d = ((n_minus_1 * n_minus_1) * fp * fp - n * n_minus_1 * f * fpp)
+                .abs()
+                .sqrt()
+                .copysign(fp);
+
+            let denominator = n * f / (fp + d.max(1e-30));
+            eccentric_anomaly -= denominator;
+
+            if denominator.abs() < 1e-30 || !denominator.is_finite() {
+                // dangerously close to div-by-zero, break out
+                break;
+            }
+        }
+
+        eccentric_anomaly * sign
+    }
 }
 
 /// An error to describe why setting the periapsis of an orbit failed.
@@ -728,15 +1135,15 @@ mod tests;
 
 #[inline]
 fn keplers_equation(mean_anomaly: f64, eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return eccentric_anomaly - (eccentricity * eccentric_anomaly.sin()) - mean_anomaly;
+    eccentric_anomaly - (eccentricity * eccentric_anomaly.sin()) - mean_anomaly
 }
 #[inline]
 fn keplers_equation_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return 1.0 - (eccentricity * eccentric_anomaly.cos());
+    1.0 - (eccentricity * eccentric_anomaly.cos())
 }
 #[inline]
 fn keplers_equation_second_derivative(eccentric_anomaly: f64, eccentricity: f64) -> f64 {
-    return eccentricity * eccentric_anomaly.sin();
+    eccentricity * eccentric_anomaly.sin()
 }
 
 /// Get the hyperbolic sine and cosine of a number.
@@ -750,7 +1157,7 @@ fn sinhcosh(x: f64) -> (f64, f64) {
     let e_x = x.exp();
     let e_neg_x = (-x).exp();
 
-    return ((e_x - e_neg_x) * 0.5, (e_x + e_neg_x) * 0.5);
+    ((e_x - e_neg_x) * 0.5, (e_x + e_neg_x) * 0.5)
 }
 
 /// Solve a cubic equation to get its real root.
@@ -804,7 +1211,7 @@ fn solve_monotone_cubic(a: f64, b: f64, c: f64, d: f64) -> f64 {
 
     // x_i = t_i - b / 3a
     // here, a = 1
-    return t - b / 3.0;
+    t - b / 3.0
 }
 
 mod generated_sinh_approximator;

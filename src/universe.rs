@@ -5,7 +5,7 @@ use glam::DVec3;
 use super::Body;
 
 /// Struct that represents the simulation of the universe.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Universe {
     /// The celestial bodies in the universe.
     bodies: Vec<Body>,
@@ -34,24 +34,13 @@ impl Universe {
         let time_step = time_step.unwrap_or(3.6e3);
         let g = g.unwrap_or(6.67430e-11);
 
-        return Universe {
+        Universe {
             bodies: Vec::new(),
             body_relations: Vec::new(),
             time: 0.0,
             time_step,
             g,
-        };
-    }
-
-    /// Creates an empty universe with default parameters.
-    pub fn default() -> Universe {
-        return Universe {
-            bodies: Vec::new(),
-            body_relations: Vec::new(),
-            time: 0.0,
-            time_step: 3.6e3,
-            g: 6.67430e-11,
-        };
+        }
     }
 
     /// Adds a body to the universe.
@@ -74,7 +63,7 @@ impl Universe {
                 satellites: Vec::new(),
             });
         }
-        return self.bodies.len() - 1;
+        self.bodies.len() - 1
     }
 
     /// Removes a body from the universe.
@@ -83,7 +72,7 @@ impl Universe {
         let body = self.bodies.remove(body_index);
         let relations = &mut self.body_relations[body_index];
 
-        if let Some(_) = relations.parent {
+        if relations.parent.is_some() {
             relations.satellites.retain(|&x| x != body_index);
         }
 
@@ -95,27 +84,27 @@ impl Universe {
             self.remove_body(satellite);
         }
 
-        return body;
+        body
     }
 
     /// Gets a Vec of all bodies in the universe.
     pub fn get_bodies(&self) -> &Vec<Body> {
-        return &self.bodies;
+        &self.bodies
     }
 
     /// Gets a Vec of all body relations in the universe.
     pub fn get_body_relations(&self) -> &Vec<BodyRelation> {
-        return &self.body_relations;
+        &self.body_relations
     }
 
     /// Gets a mutable reference to a body in the universe.
     pub fn get_body_mut(&mut self, index: usize) -> &mut Body {
-        return &mut self.bodies[index];
+        &mut self.bodies[index]
     }
 
     /// Gets an immutable reference to a body in the unvierse.
     pub fn get_body(&self, index: usize) -> &Body {
-        return &self.bodies[index];
+        &self.bodies[index]
     }
 
     /// Gets the index of the first body with a given name.
@@ -125,7 +114,7 @@ impl Universe {
                 return Some(i);
             }
         }
-        return None;
+        None
     }
 
     /// Gets the index of the last body with a given name.
@@ -135,16 +124,15 @@ impl Universe {
                 return Some(i);
             }
         }
-        return None;
+        None
     }
 
     /// Advances the simulation by a tick.
     pub fn tick(&mut self) {
         for body in &mut self.bodies {
-            if body.orbit.is_none() {
-                continue;
+            if body.orbit.is_some() {
+                let _ = body.progress_orbit(self.time_step, self.g);
             }
-            body.progress_orbit(self.time_step, self.g).unwrap();
         }
     }
 
@@ -170,6 +158,19 @@ impl Universe {
                 }
             }
             None => DVec3::ZERO,
+        }
+    }
+}
+
+impl Default for Universe {
+    /// Creates an empty universe with default parameters.
+    fn default() -> Universe {
+        Universe {
+            bodies: Vec::new(),
+            body_relations: Vec::new(),
+            time: 0.0,
+            time_step: 3.6e3,
+            g: 6.67430e-11,
         }
     }
 }

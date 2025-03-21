@@ -30,7 +30,7 @@ pub fn ceres(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Ceres".to_string(), 9.3839e20, 939.4 / 2.0, orbit);
+    Body::new("Ceres".to_string(), 9.3839e20, 939.4 / 2.0, orbit)
 }
 
 /// Returns 50000 Quaoar, a dwarf planet in the Kuiper belt.
@@ -51,7 +51,7 @@ pub fn quaoar(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Quaoar".to_string(), 1.2e21, 5.45e5, orbit);
+    Body::new("Quaoar".to_string(), 1.2e21, 5.45e5, orbit)
 }
 
 /// Returns 90377 Sedna, a dwarf planet, sednoid, and extreme trans-Neptunian object.
@@ -72,14 +72,14 @@ pub fn sedna(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new(
+    Body::new(
         "Sedna".to_string(),
         // Sedna's mass has not been directly measured.
         // An estimate is used instead.
         2e21,
         5e5,
         orbit,
-    );
+    )
 }
 
 /// Returns 134340 Pluto, a famous dwarf planet in the Kuiper belt.  
@@ -100,7 +100,7 @@ pub fn pluto(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Pluto".to_string(), 1.3025e22, 1.1883e6, orbit);
+    Body::new("Pluto".to_string(), 1.3025e22, 1.1883e6, orbit)
 }
 
 /// Returns 136108 Haumea, a dwarf planet in the Kuiper belt.  
@@ -121,7 +121,7 @@ pub fn haumea(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Haumea".to_string(), 4e21, 7.8e5, orbit);
+    Body::new("Haumea".to_string(), 4e21, 7.8e5, orbit)
 }
 
 /// Returns 136199 Eris, a dwarf planet, and a trans-Neptunian and scattered disc object.  
@@ -142,7 +142,7 @@ pub fn eris(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Eris".to_string(), 1.6466e22, 1.163e6, orbit);
+    Body::new("Eris".to_string(), 1.6466e22, 1.163e6, orbit)
 }
 
 /// Returns 136472 Makemake, a dwarf planet in the Kuiper belt.  
@@ -163,5 +163,5 @@ pub fn makemake(include_orbit: bool) -> Body {
         None
     };
 
-    return Body::new("Makemake".to_string(), 3.1e21, 7.15e5, orbit);
+    Body::new("Makemake".to_string(), 3.1e21, 7.15e5, orbit)
 }
