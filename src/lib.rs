@@ -40,12 +40,14 @@
 //! ## Example
 //!
 //! ```rust
+//! use glam::DVec3;
+//!
 //! use keplerian_sim::{Orbit, OrbitTrait};
 //!
 //! # fn main() {
-//! // Create a perfectly circular orbit with a radius of 1 meter
-//! let orbit = Orbit::default();
-//! assert_eq!(orbit.get_position_at_time(0.0), (1.0, 0.0, 0.0));
+//! #    // Create a perfectly circular orbit with a radius of 1 meter
+//! #    let orbit = Orbit::default();
+//! #    assert_eq!(orbit.get_position_at_time(0.0), DVec3::new(1.0, 0.0, 0.0));
 //! # }
 //! #
 //! ```
@@ -137,9 +139,9 @@ const PI_SQUARED: f64 = PI * PI;
 ///
 /// let vec = DVec2::new(1.0, 2.0);
 ///
-/// let result = matrix.dot_vec(vec);
+/// let result = matrix.dot_vec(&vec);
 ///
-/// assert_eq!(result, DVec3::(1.0, 2.0, 0.0));
+/// assert_eq!(result, DVec3::new(1.0, 2.0, 0.0));
 /// ```
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
@@ -170,7 +172,7 @@ impl Matrix3x2 {
     ///
     /// let vec = DVec2::new(1.0, 2.0);
     ///
-    /// let result = matrix.dot_vec(vec);
+    /// let result = matrix.dot_vec(&vec);
     ///
     /// assert_eq!(result, DVec3::new(1.0, 2.0, 3.0));
     /// ```
@@ -297,7 +299,7 @@ pub trait OrbitTrait {
     fn get_linear_eccentricity(&self) -> f64;
 
     /// Gets the apoapsis of the orbit.  
-    /// Returns infinity for parabolic orbits.  
+    /// Returns infinity for parabolic and hyperbolic orbits.  
     /// Returns negative values for hyperbolic orbits.  
     ///
     /// # Examples
@@ -312,7 +314,7 @@ pub trait OrbitTrait {
     /// assert!(orbit.get_apoapsis().is_infinite());
     ///
     /// orbit.set_eccentricity(2.0); // Hyperbolic
-    /// assert!(orbit.get_apoapsis() < 0.0);
+    /// assert!(orbit.get_apoapsis().is_infinite());
     /// ```
     fn get_apoapsis(&self) -> f64 {
         let eccentricity = self.get_eccentricity();
