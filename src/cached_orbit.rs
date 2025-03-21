@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::{ApoapsisSetterError, CompactOrbit, Matrix3x2, OrbitTrait};
 
 /// A struct representing a Keplerian orbit with some cached values.
@@ -58,6 +61,7 @@ use crate::{ApoapsisSetterError, CompactOrbit, Matrix3x2, OrbitTrait};
 /// ```
 /// See [Orbit::new] and [Orbit::with_apoapsis] for more information.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Orbit {
     /// The eccentricity of the orbit.  
     /// e < 1: ellipse  
@@ -81,7 +85,9 @@ pub struct Orbit {
     mean_anomaly: f64,
     cache: OrbitCachedCalculations,
 }
+
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct OrbitCachedCalculations {
     /// The semi-major axis of the orbit, in meters.
     semi_major_axis: f64,
